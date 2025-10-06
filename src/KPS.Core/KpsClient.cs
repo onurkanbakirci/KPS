@@ -7,29 +7,21 @@ namespace KPS.Core;
 /// <summary>
 /// Main KPS client implementation for querying Turkey's Population and Citizenship Affairs services
 /// </summary>
-public class KpsClient : IKpsClient
+public class KpsClient(
+    IStsService stsService,
+    ISoapService soapService,
+    ILogger<KpsClient> logger,
+    KpsOptions options) : IKpsClient
 {
-    private readonly IStsService _stsService;
-    private readonly ISoapService _soapService;
-    private readonly ILogger<KpsClient> _logger;
-    private readonly KpsOptions _options;
-
-    public KpsClient(
-        IStsService stsService,
-        ISoapService soapService,
-        ILogger<KpsClient> logger,
-        KpsOptions options)
-    {
-        _stsService = stsService;
-        _soapService = soapService;
-        _logger = logger;
-        _options = options;
-    }
+    private readonly IStsService _stsService = stsService;
+    private readonly ISoapService _soapService = soapService;
+    private readonly ILogger<KpsClient> _logger = logger;
+    private readonly KpsOptions _options = options;
 
     /// <summary>
     /// Performs a query to the KPS service
     /// </summary>
-    public async Task<QueryResult> DoQueryAsync(QueryRequest request, CancellationToken cancellationToken = default)
+    public async Task<QueryResult> QueryAsync(QueryRequest request, CancellationToken cancellationToken = default)
     {
         try
         {

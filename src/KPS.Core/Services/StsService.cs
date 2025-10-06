@@ -11,18 +11,11 @@ namespace KPS.Core.Services;
 /// <summary>
 /// Implementation of Security Token Service for KPS authentication
 /// </summary>
-public class StsService : IStsService
+public class StsService(HttpClient httpClient, ILogger<StsService> logger, KpsOptions options) : IStsService
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<StsService> _logger;
-    private readonly KpsOptions _options;
-
-    public StsService(HttpClient httpClient, ILogger<StsService> logger, KpsOptions options)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-        _options = options;
-    }
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly ILogger<StsService> _logger = logger;
+    private readonly KpsOptions _options = options;
 
     /// <summary>
     /// Gets a security token from the STS service using WS-Trust

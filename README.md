@@ -40,7 +40,7 @@ var request = new QueryRequest
 };
 
 // Perform the query
-var result = await client.DoQueryAsync(request);
+var result = await client.QueryAsync(request);
 
 if (result.Status)
 {

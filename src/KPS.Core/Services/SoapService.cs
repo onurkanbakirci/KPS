@@ -9,18 +9,11 @@ namespace KPS.Core.Services;
 /// <summary>
 /// Implementation of SOAP service for KPS queries with HMAC-SHA1 signing
 /// </summary>
-public class SoapService : ISoapService
+public class SoapService(HttpClient httpClient, ILogger<SoapService> logger, KpsOptions options) : ISoapService
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<SoapService> _logger;
-    private readonly KpsOptions _options;
-
-    public SoapService(HttpClient httpClient, ILogger<SoapService> logger, KpsOptions options)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-        _options = options;
-    }
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly ILogger<SoapService> _logger = logger;
+    private readonly KpsOptions _options = options;
 
     /// <summary>
     /// Sends a signed SOAP request to the KPS service

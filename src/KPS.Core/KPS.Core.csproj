@@ -8,10 +8,10 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>KPS.Core</PackageId>
     <Version>1.0.0</Version>
-    <Authors>KPS Client Contributors</Authors>
+    <Authors>onurkanbkrc@gmail.com</Authors>
     <Description>.NET client for Turkey's Population and Citizenship Affairs (KPS) v2 services</Description>
     <PackageTags>kps;turkish;population;citizenship;soap;ws-trust</PackageTags>
-    <RepositoryUrl>https://github.com/netinternet/kpsclient</RepositoryUrl>
+    <RepositoryUrl>https://github.com/onurkanbakirci/KPS</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 

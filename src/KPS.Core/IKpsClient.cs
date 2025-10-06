@@ -13,5 +13,5 @@ public interface IKpsClient
     /// <param name="request">Query request containing person information</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Query result</returns>
-    Task<QueryResult> DoQueryAsync(QueryRequest request, CancellationToken cancellationToken = default);
+    Task<QueryResult> QueryAsync(QueryRequest request, CancellationToken cancellationToken = default);
 }

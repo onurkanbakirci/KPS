@@ -54,7 +54,7 @@ var request = new QueryRequest
 };
 
 // Perform the query
-var result = await client.DoQueryAsync(request);
+var result = await client.QueryAsync(request);
 
 if (result.Status)
 {
@@ -129,7 +129,7 @@ public class MyService
             BirthDay = birthDay
         };
 
-        var result = await _kpsClient.DoQueryAsync(request);
+        var result = await _kpsClient.QueryAsync(request);
         return result.Status;
     }
 }
