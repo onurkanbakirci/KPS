@@ -4,7 +4,7 @@ A .NET client library for Turkey's Population and Citizenship Affairs (KPS) v2 s
 
 ## What is this library?
 
-KPS.Core is a .NET implementation of the Go KPS client library that allows you to query Turkey's official population and citizenship database. It handles the complex authentication flow with WS-Trust (STS) and SOAP message signing automatically.
+KPS.Core is a .NET implementation of the KPS that allows you to query Turkey's official population and citizenship database. It handles the complex authentication flow with WS-Trust (STS) and SOAP message signing automatically.
 
 ## Installation
 
