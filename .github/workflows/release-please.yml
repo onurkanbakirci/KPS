@@ -18,9 +18,15 @@ jobs:
       tag_name: ${{ steps.release.outputs.tag_name }}
       upload_url: ${{ steps.release.outputs.upload_url }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
       - uses: google-github-actions/release-please-action@v4
         id: release
         with:
           release-type: dotnet-yoshi
           package-name: KPS.Core
           token: ${{ secrets.GITHUB_TOKEN }}
+          manifest-file: release-please-config.json

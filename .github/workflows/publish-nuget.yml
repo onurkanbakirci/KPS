@@ -1,0 +1,34 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/KPS.Core/KPS.Core.csproj
+
+      - name: Build the package
+        run: dotnet build src/KPS.Core/KPS.Core.csproj --configuration Release --no-restore
+
+      - name: Pack the package
+        run: dotnet pack src/KPS.Core/KPS.Core.csproj --configuration Release --no-build --output ./nupkgs
+
+      - name: Push to NuGet
+        run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
