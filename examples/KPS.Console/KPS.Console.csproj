@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/KPS.Core/KPS.Core.csproj" />
+    <PackageReference Include="KPS.Core" Version="1.0.2" />
   </ItemGroup>
 
 </Project>
