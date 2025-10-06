@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>KPS.Client</id>
+    <version>1.0.0</version>
+    <authors>KPS Client Contributors</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <description>.NET client for Turkey's Population and Citizenship Affairs (KPS) v2 services</description>
+    <tags>kps turkish population citizenship soap ws-trust</tags>
+    <repository type="git" url="https://github.com/netinternet/kpsclient" />
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="Microsoft.Extensions.Configuration" version="8.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.DependencyInjection" version="8.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Http" version="8.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging" version="8.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Options" version="8.0.0" exclude="Build,Analyzers" />
+        <dependency id="System.ServiceModel.Federation" version="6.0.0" exclude="Build,Analyzers" />
+        <dependency id="System.ServiceModel.Http" version="6.0.0" exclude="Build,Analyzers" />
+        <dependency id="System.ServiceModel.Security" version="6.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="/Users/onurkanbakirci/Documents/kpsclient/src/KPS.Core/bin/Debug/net8.0/KPS.Core.dll" target="lib/net8.0/KPS.Core.dll" />
+  </files>
+</package>
