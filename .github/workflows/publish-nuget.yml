@@ -19,13 +19,20 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            6.0.x
+            8.0.x
+            9.0.x
+            10.0.x
 
       - name: Restore dependencies
         run: dotnet restore src/KPS.Core/KPS.Core.csproj
 
       - name: Build the package
         run: dotnet build src/KPS.Core/KPS.Core.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test src/KPS.Core.Tests/KPS.Core.Tests.csproj --configuration Release --no-build
 
       - name: Pack the package
         run: dotnet pack src/KPS.Core/KPS.Core.csproj --configuration Release --no-build --output ./nupkgs
