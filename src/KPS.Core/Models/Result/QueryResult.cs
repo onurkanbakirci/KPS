@@ -11,9 +11,9 @@ public class QueryResult
     public bool Status { get; set; }
 
     /// <summary>
-    /// Result code: 1 = Success, 2 = Error/Not Found, 3 = Deceased
+    /// Result code indicating the outcome of the operation
     /// </summary>
-    public int Code { get; set; }
+    public ResultCodes Code { get; set; }
 
     /// <summary>
     /// Description of the result
@@ -49,9 +49,20 @@ public static class PersonTypes
 /// <summary>
 /// Result codes returned by KPS service
 /// </summary>
-public static class ResultCodes
+public enum ResultCodes
 {
-    public const int Success = 1;
-    public const int ErrorOrNotFound = 2;
-    public const int Deceased = 3;
+    /// <summary>
+    /// Operation completed successfully
+    /// </summary>
+    Success = 1,
+
+    /// <summary>
+    /// Error occurred or person not found
+    /// </summary>
+    ErrorOrNotFound = 2,
+
+    /// <summary>
+    /// Person is deceased
+    /// </summary>
+    Deceased = 3
 }

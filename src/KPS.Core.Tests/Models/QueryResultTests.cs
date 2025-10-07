@@ -31,7 +31,7 @@ public class QueryResultTests
 
         // Act
         result.Status = true;
-        result.Code = 1;
+        result.Code = ResultCodes.Success;
         result.Aciklama = "Success";
         result.Person = "tc_vatandasi";
         result.Extra = extraData;
@@ -39,7 +39,7 @@ public class QueryResultTests
 
         // Assert
         result.Status.Should().BeTrue();
-        result.Code.Should().Be(1);
+        result.Code.Should().Be(ResultCodes.Success);
         result.Aciklama.Should().Be("Success");
         result.Person.Should().Be("tc_vatandasi");
         result.Extra.Should().BeEquivalentTo(extraData);
@@ -48,7 +48,7 @@ public class QueryResultTests
 
     [Theory]
     [InlineData(1, "Success")]
-    [InlineData(2, "Error/NotFound")]
+    [InlineData(2, "ErrorOrNotFound")]
     [InlineData(3, "Deceased")]
     public void ResultCodes_ShouldHaveCorrectValues(int code, string expectedDescription)
     {
@@ -56,15 +56,15 @@ public class QueryResultTests
         switch (code)
         {
             case 1:
-                ResultCodes.Success.Should().Be(1);
+                ((int)ResultCodes.Success).Should().Be(1);
                 ResultCodes.Success.ToString().Should().Be(expectedDescription);
                 break;
             case 2:
-                ResultCodes.ErrorOrNotFound.Should().Be(2);
+                ((int)ResultCodes.ErrorOrNotFound).Should().Be(2);
                 ResultCodes.ErrorOrNotFound.ToString().Should().Be(expectedDescription);
                 break;
             case 3:
-                ResultCodes.Deceased.Should().Be(3);
+                ((int)ResultCodes.Deceased).Should().Be(3);
                 ResultCodes.Deceased.ToString().Should().Be(expectedDescription);
                 break;
         }

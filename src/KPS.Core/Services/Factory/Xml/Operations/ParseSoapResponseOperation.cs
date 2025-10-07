@@ -98,8 +98,8 @@ internal class ParseSoapResponseOperation : IXmlOperation
 
                 var result = new QueryResult
                 {
-                    Status = code == 1,
-                    Code = code,
+                    Status = code == (int)ResultCodes.Success,
+                    Code = (ResultCodes)code,
                     Aciklama = aciklama ?? "Query completed"
                 };
 
@@ -115,7 +115,7 @@ internal class ParseSoapResponseOperation : IXmlOperation
             var notFoundResult = new QueryResult
             {
                 Status = false,
-                Code = 2,
+                Code = ResultCodes.ErrorOrNotFound,
                 Aciklama = "Kayıt bulunamadı"
             };
 
