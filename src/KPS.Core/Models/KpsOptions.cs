@@ -34,4 +34,14 @@ public class KpsOptions
     /// Whether to include raw SOAP response in results (default: false)
     /// </summary>
     public bool IncludeRawResponse { get; set; } = false;
+
+    /// <summary>
+    /// Base64-encoded signing key for HMAC-SHA1 signatures
+    /// </summary>
+    public string SigningKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// SAML Assertion ID for message signing
+    /// </summary>
+    public string AssertionId { get; set; } = string.Empty;
 }

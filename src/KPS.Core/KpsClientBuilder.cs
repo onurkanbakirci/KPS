@@ -153,8 +153,8 @@ public class KpsClientBuilder
 
         var logger = _logger ?? new LoggerFactory().CreateLogger<KpsClient>();
 
-        var stsService = new StsService(httpClient, logger as ILogger<StsService> ?? new LoggerFactory().CreateLogger<StsService>(), options);
-        var soapService = new SoapService(httpClient, logger as ILogger<SoapService> ?? new LoggerFactory().CreateLogger<SoapService>(), options);
+        var stsService = new StsService(httpClient, options);
+        var soapService = new SoapService(httpClient, options);
 
         return new KpsClient(stsService, soapService, logger, options);
     }
