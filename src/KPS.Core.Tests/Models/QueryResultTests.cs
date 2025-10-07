@@ -57,12 +57,15 @@ public class QueryResultTests
         {
             case 1:
                 ResultCodes.Success.Should().Be(1);
+                ResultCodes.Success.ToString().Should().Be(expectedDescription);
                 break;
             case 2:
                 ResultCodes.ErrorOrNotFound.Should().Be(2);
+                ResultCodes.ErrorOrNotFound.ToString().Should().Be(expectedDescription);
                 break;
             case 3:
                 ResultCodes.Deceased.Should().Be(3);
+                ResultCodes.Deceased.ToString().Should().Be(expectedDescription);
                 break;
         }
     }
