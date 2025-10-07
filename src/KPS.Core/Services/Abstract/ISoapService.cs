@@ -1,6 +1,7 @@
-using KPS.Core.Models;
+using KPS.Core.Models.Request;
+using KPS.Core.Models.Result;
 
-namespace KPS.Core.Services;
+namespace KPS.Core.Services.Abstract;
 
 /// <summary>
 /// Interface for SOAP service operations

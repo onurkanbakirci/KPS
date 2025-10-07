@@ -1,4 +1,4 @@
-namespace KPS.Core.Models;
+namespace KPS.Core.Models.Result;
 
 /// <summary>
 /// Represents the result of a KPS query

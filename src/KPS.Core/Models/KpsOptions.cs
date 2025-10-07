@@ -18,12 +18,12 @@ public class KpsOptions
     /// <summary>
     /// STS (Security Token Service) endpoint URL
     /// </summary>
-    public string StsEndpoint { get; set; } = "https://tckimlik.nvi.gov.tr/Service/STS";
+    public string StsEndpoint { get; set; } = "https://kimlikdogrulama.nvi.gov.tr/Services/Issuer.svc/IWSTrust13";
 
     /// <summary>
     /// KPS service endpoint URL
     /// </summary>
-    public string KpsEndpoint { get; set; } = "https://tckimlik.nvi.gov.tr/Service/KPSPublic";
+    public string KpsEndpoint { get; set; } = "https://kpsv2.nvi.gov.tr/Services/RoutingService.svc";
 
     /// <summary>
     /// Request timeout in seconds (default: 30)

@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Logging;
 using KPS.Core.Models;
 using KPS.Core.Services;
+using KPS.Core.Services.Abstract;
+using KPS.Core.Clients;
+using KPS.Core.Clients.Abstract;
 
 namespace KPS.Core;
 
@@ -11,8 +14,8 @@ public class KpsClientBuilder
 {
     private string _username = string.Empty;
     private string _password = string.Empty;
-    private string _stsEndpoint = "https://tckimlik.nvi.gov.tr/Service/STS";
-    private string _kpsEndpoint = "https://tckimlik.nvi.gov.tr/Service/KPSPublic";
+    private string _stsEndpoint = "https://kimlikdogrulama.nvi.gov.tr/Services/Issuer.svc/IWSTrust13";
+    private string _kpsEndpoint = "https://kpsv2.nvi.gov.tr/Services/RoutingService.svc";
     private int _timeoutSeconds = 30;
     private bool _includeRawResponse = false;
     private HttpClient? _httpClient;

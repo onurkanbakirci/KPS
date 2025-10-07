@@ -1,6 +1,7 @@
-using KPS.Core.Models;
+using KPS.Core.Models.Request;
+using KPS.Core.Models.Result;
 
-namespace KPS.Core;
+namespace KPS.Core.Clients.Abstract;
 
 /// <summary>
 /// Interface for KPS (Population and Citizenship Affairs) client

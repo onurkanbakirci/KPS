@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace KPS.Core.Models;
+namespace KPS.Core.Models.Request;
 
 /// <summary>
 /// Represents a citizen verification request to the KPS service

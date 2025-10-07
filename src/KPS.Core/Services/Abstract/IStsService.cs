@@ -1,6 +1,4 @@
-using KPS.Core.Models;
-
-namespace KPS.Core.Services;
+namespace KPS.Core.Services.Abstract;
 
 /// <summary>
 /// Interface for Security Token Service operations

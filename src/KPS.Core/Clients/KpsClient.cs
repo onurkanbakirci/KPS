@@ -1,8 +1,12 @@
 using Microsoft.Extensions.Logging;
 using KPS.Core.Models;
+using KPS.Core.Models.Request;
+using KPS.Core.Models.Result;
 using KPS.Core.Services;
+using KPS.Core.Services.Abstract;
+using KPS.Core.Clients.Abstract;
 
-namespace KPS.Core;
+namespace KPS.Core.Clients;
 
 /// <summary>
 /// Main KPS client implementation for querying Turkey's Population and Citizenship Affairs services

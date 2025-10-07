@@ -1,6 +1,8 @@
 using FluentAssertions;
 using KPS.Core;
 using KPS.Core.Models;
+using KPS.Core.Clients;
+using KPS.Core.Clients.Abstract;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

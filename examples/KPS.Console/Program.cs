@@ -1,5 +1,5 @@
 ﻿using KPS.Core;
-using KPS.Core.Models;
+using KPS.Core.Models.Request;
 
 var kpsClient = new KpsClientBuilder()
     .WithUsername("YOUR_USERNAME")

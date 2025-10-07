@@ -3,6 +3,10 @@ using System.Text;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using KPS.Core.Models;
+using KPS.Core.Models.Request;
+using KPS.Core.Models.Result;
+using KPS.Core.Services.Abstract;
+using KPS.Core.Services.Factory;
 
 namespace KPS.Core.Services;
 
@@ -27,8 +31,8 @@ public class SoapService(HttpClient httpClient, ILogger<SoapService> logger, Kps
             var soapEnvelope = CreateSoapEnvelope(request, samlToken);
             var signedEnvelope = SignSoapEnvelope(soapEnvelope);
             
-            var content = new StringContent(signedEnvelope, Encoding.UTF8, "text/xml");
-            content.Headers.Add("SOAPAction", "\"http://tckimlik.nvi.gov.tr/WS/TCKimlikNoDogrula\"");
+            var content = new StringContent(signedEnvelope, Encoding.UTF8, "application/soap+xml");
+            content.Headers.Add("SOAPAction", "\"http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis/Sorgula\"");
 
             var response = await _httpClient.PostAsync(_options.KpsEndpoint, content, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -51,28 +55,32 @@ public class SoapService(HttpClient httpClient, ILogger<SoapService> logger, Kps
     private static string CreateSoapEnvelope(CitizenVerificationRequest request, string samlToken)
     {
         var soapEnvelope = $@"<?xml version=""1.0"" encoding=""utf-8""?>
-<soap:Envelope xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/""
+<soap:Envelope xmlns:soap=""http://www.w3.org/2003/05/soap-envelope""
                xmlns:wsa=""http://www.w3.org/2005/08/addressing""
                xmlns:wsu=""http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd""
                xmlns:wsse=""http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd""
-               xmlns:tns=""http://tckimlik.nvi.gov.tr/WS"">
+               xmlns:tns=""http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis"">
   <soap:Header>
-    <wsa:Action>http://tckimlik.nvi.gov.tr/WS/TCKimlikNoDogrula</wsa:Action>
-    <wsa:To>https://tckimlik.nvi.gov.tr/Service/KPSPublic</wsa:To>
+    <wsa:Action>http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis/Sorgula</wsa:Action>
+    <wsa:To>https://kpsv2.nvi.gov.tr/Services/RoutingService.svc</wsa:To>
     <wsa:MessageID>urn:uuid:{Guid.NewGuid()}</wsa:MessageID>
     <wsse:Security>
       {samlToken}
     </wsse:Security>
   </soap:Header>
   <soap:Body>
-    <tns:TCKimlikNoDogrula>
-      <tns:TCKimlikNo>{XmlEscape(request.TCNo)}</tns:TCKimlikNo>
-      <tns:Ad>{XmlEscape(request.FirstName)}</tns:Ad>
-      <tns:Soyad>{XmlEscape(request.LastName)}</tns:Soyad>
-      <tns:DogumYili>{XmlEscape(request.BirthYear)}</tns:DogumYili>
-      <tns:DogumAy>{XmlEscape(request.BirthMonth)}</tns:DogumAy>
-      <tns:DogumGun>{XmlEscape(request.BirthDay)}</tns:DogumGun>
-    </tns:TCKimlikNoDogrula>
+    <tns:Sorgula xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">
+      <tns:kriterListesi>
+        <tns:TumKutukDogrulamaSorguKriteri>
+          <tns:Ad>{XmlEscape(request.FirstName)}</tns:Ad>
+          <tns:DogumAy>{XmlEscape(ZeroIfEmpty(request.BirthMonth))}</tns:DogumAy>
+          <tns:DogumGun>{XmlEscape(ZeroIfEmpty(request.BirthDay))}</tns:DogumGun>
+          <tns:DogumYil>{XmlEscape(request.BirthYear)}</tns:DogumYil>
+          <tns:KimlikNo>{XmlEscape(request.TCNo)}</tns:KimlikNo>
+          <tns:Soyad>{XmlEscape(request.LastName)}</tns:Soyad>
+        </tns:TumKutukDogrulamaSorguKriteri>
+      </tns:kriterListesi>
+    </tns:Sorgula>
   </soap:Body>
 </soap:Envelope>";
 
@@ -133,42 +141,98 @@ public class SoapService(HttpClient httpClient, ILogger<SoapService> logger, Kps
             xmlDoc.LoadXml(response);
 
             var namespaceManager = CreateNamespaceManager(xmlDoc);
-            namespaceManager.AddNamespace("tns", "http://tckimlik.nvi.gov.tr/WS");
+            namespaceManager.AddNamespace("tns", "http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis");
 
-            var resultNode = xmlDoc.SelectSingleNode("//tns:TCKimlikNoDogrulaResponse", namespaceManager);
+            // Look for the response node
+            var resultNode = xmlDoc.SelectSingleNode("//tns:SorgulaResponse", namespaceManager);
             if (resultNode == null)
             {
                 throw new InvalidOperationException("Invalid response format from KPS service");
             }
 
-            var result = new QueryResult
+            // Get the preferred component type from DoluBilesenler
+            var doluBilesenler = GetNodeText(xmlDoc, "//*[local-name()='DoluBilesenler']/*[contains(local-name(), 'DogrulaServisDoluBilesen')]");
+            var prefer = doluBilesenler?.ToLower().Replace(" ", "") ?? "";
+
+            // Use strategy pattern to determine search order
+            var searchStrategy = PersonSearchStrategyFactory.CreateStrategy(prefer);
+            var searchOrder = searchStrategy.GetSearchOrder();
+
+            // Search for person information in the preferred order
+            foreach (var (path, name) in searchOrder)
             {
-                Status = true,
-                Code = ResultCodes.Success,
-                Aciklama = "Query completed successfully"
+                var kisiNode = xmlDoc.SelectSingleNode(path);
+                if (kisiNode == null) continue;
+
+                // Get status code
+                var kodStr = GetNodeText(kisiNode, ".//*[local-name()='DurumBilgisi']/*[local-name()='Durum']/*[local-name()='Kod']");
+                if (string.IsNullOrEmpty(kodStr))
+                {
+                    kodStr = GetNodeText(kisiNode, ".//*[local-name()='Durum']/*[local-name()='Kod']");
+                }
+
+                if (string.IsNullOrEmpty(kodStr)) continue;
+
+                if (!int.TryParse(kodStr, out var code)) continue;
+
+                // Get description
+                var aciklama = GetNodeText(kisiNode, ".//*[local-name()='DurumBilgisi']/*[local-name()='Durum']/*[local-name()='Aciklama']");
+                if (string.IsNullOrEmpty(aciklama))
+                {
+                    aciklama = GetNodeText(kisiNode, ".//*[local-name()='Durum']/*[local-name()='Aciklama']");
+                }
+
+                var result = new QueryResult
+                {
+                    Status = code == 1,
+                    Code = code,
+                    Aciklama = aciklama ?? "Query completed"
+                };
+
+                // Include raw response if configured
+                if (_options.IncludeRawResponse)
+                {
+                    result.Raw = response;
+                }
+
+                return result;
+            }
+
+            // No person information found
+            var notFoundResult = new QueryResult
+            {
+                Status = false,
+                Code = 2,
+                Aciklama = "Kayıt bulunamadı"
             };
 
-            // Check if the response indicates success or failure
-            var resultValue = resultNode.InnerText?.Trim();
-            if (string.IsNullOrEmpty(resultValue) || resultValue == "false")
-            {
-                result.Status = false;
-                result.Code = ResultCodes.ErrorOrNotFound;
-                result.Aciklama = "Person not found or data mismatch";
-            }
-
-            // Include raw response if configured
             if (_options.IncludeRawResponse)
             {
-                result.Raw = response;
+                notFoundResult.Raw = response;
             }
 
-            return result;
+            return notFoundResult;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to parse SOAP response");
             throw new InvalidOperationException("Failed to parse KPS response", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets the text content of a node using XPath
+    /// </summary>
+    private static string GetNodeText(XmlNode node, string xpath)
+    {
+        try
+        {
+            var foundNode = node.SelectSingleNode(xpath);
+            return foundNode?.InnerText?.Trim() ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
         }
     }
 
@@ -195,5 +259,13 @@ public class SoapService(HttpClient httpClient, ILogger<SoapService> logger, Kps
                   .Replace(">", "&gt;")
                   .Replace("\"", "&quot;")
                   .Replace("'", "&apos;");
+    }
+
+    /// <summary>
+    /// Returns "0" if the string is empty or whitespace, otherwise returns the original string
+    /// </summary>
+    private static string ZeroIfEmpty(string text)
+    {
+        return string.IsNullOrWhiteSpace(text) ? "0" : text;
     }
 }

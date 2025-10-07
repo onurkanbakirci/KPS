@@ -16,7 +16,7 @@ dotnet add package KPS.Core
 
 ```csharp
 using KPS.Core;
-using KPS.Core.Models;
+using KPS.Core.Models.Request;
 
 // Create client using builder pattern with all options
 var client = new KpsClientBuilder()
@@ -24,8 +24,8 @@ var client = new KpsClientBuilder()
     .WithPassword("YOUR_PASSWORD")
     .WithTimeout(30)                    // Request timeout in seconds
     .WithRawResponse(false)             // Include raw SOAP response
-    .WithStsEndpoint("https://tckimlik.nvi.gov.tr/Service/STS")  // Custom STS endpoint
-    .WithKpsEndpoint("https://tckimlik.nvi.gov.tr/Service/KPSPublic")  // Custom KPS endpoint
+    .WithStsEndpoint("https://kimlikdogrulama.nvi.gov.tr/Services/Issuer.svc/IWSTrust13")  // Custom STS endpoint
+    .WithKpsEndpoint("https://kpsv2.nvi.gov.tr/Services/RoutingService.svc")  // Custom KPS endpoint
     .Build();
 
 // Create citizen verification request

@@ -1,5 +1,5 @@
 using FluentAssertions;
-using KPS.Core.Models;
+using KPS.Core.Models.Request;
 using System.ComponentModel.DataAnnotations;
 using Xunit;
 

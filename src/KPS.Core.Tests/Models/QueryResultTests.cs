@@ -1,5 +1,5 @@
 using FluentAssertions;
-using KPS.Core.Models;
+using KPS.Core.Models.Result;
 using Xunit;
 
 namespace KPS.Core.Tests.Models;
