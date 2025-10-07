@@ -18,7 +18,7 @@ public class SoapService(HttpClient httpClient, ILogger<SoapService> logger, Kps
     /// <summary>
     /// Sends a signed SOAP request to the KPS service
     /// </summary>
-    public async Task<QueryResult> SendSoapRequestAsync(QueryRequest request, string samlToken, CancellationToken cancellationToken = default)
+    public async Task<QueryResult> SendSoapRequestAsync(CitizenVerificationRequest request, string samlToken, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -48,7 +48,7 @@ public class SoapService(HttpClient httpClient, ILogger<SoapService> logger, Kps
     /// <summary>
     /// Creates the SOAP envelope for the KPS query
     /// </summary>
-    private static string CreateSoapEnvelope(QueryRequest request, string samlToken)
+    private static string CreateSoapEnvelope(CitizenVerificationRequest request, string samlToken)
     {
         var soapEnvelope = $@"<?xml version=""1.0"" encoding=""utf-8""?>
 <soap:Envelope xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/""

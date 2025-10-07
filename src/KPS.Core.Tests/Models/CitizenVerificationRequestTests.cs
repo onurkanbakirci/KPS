@@ -5,49 +5,49 @@ using Xunit;
 
 namespace KPS.Core.Tests.Models;
 
-public class QueryRequestTests
+public class CitizenVerificationRequestTests
 {
     [Fact]
-    public void QueryRequest_ShouldHaveRequiredAttributes()
+    public void CitizenVerificationRequest_ShouldHaveRequiredAttributes()
     {
         // Arrange
-        var request = new QueryRequest();
+        var request = new CitizenVerificationRequest();
 
         // Act & Assert
-        var tcNoProperty = typeof(QueryRequest).GetProperty(nameof(QueryRequest.TCNo));
+        var tcNoProperty = typeof(CitizenVerificationRequest).GetProperty(nameof(CitizenVerificationRequest.TCNo));
         tcNoProperty.Should().NotBeNull();
         tcNoProperty!.GetCustomAttributes(typeof(RequiredAttribute), false).Should().NotBeEmpty();
         tcNoProperty.GetCustomAttributes(typeof(StringLengthAttribute), false).Should().NotBeEmpty();
 
-        var firstNameProperty = typeof(QueryRequest).GetProperty(nameof(QueryRequest.FirstName));
+        var firstNameProperty = typeof(CitizenVerificationRequest).GetProperty(nameof(CitizenVerificationRequest.FirstName));
         firstNameProperty.Should().NotBeNull();
         firstNameProperty!.GetCustomAttributes(typeof(RequiredAttribute), false).Should().NotBeEmpty();
 
-        var lastNameProperty = typeof(QueryRequest).GetProperty(nameof(QueryRequest.LastName));
+        var lastNameProperty = typeof(CitizenVerificationRequest).GetProperty(nameof(CitizenVerificationRequest.LastName));
         lastNameProperty.Should().NotBeNull();
         lastNameProperty!.GetCustomAttributes(typeof(RequiredAttribute), false).Should().NotBeEmpty();
 
-        var birthYearProperty = typeof(QueryRequest).GetProperty(nameof(QueryRequest.BirthYear));
+        var birthYearProperty = typeof(CitizenVerificationRequest).GetProperty(nameof(CitizenVerificationRequest.BirthYear));
         birthYearProperty.Should().NotBeNull();
         birthYearProperty!.GetCustomAttributes(typeof(RequiredAttribute), false).Should().NotBeEmpty();
         birthYearProperty.GetCustomAttributes(typeof(StringLengthAttribute), false).Should().NotBeEmpty();
 
-        var birthMonthProperty = typeof(QueryRequest).GetProperty(nameof(QueryRequest.BirthMonth));
+        var birthMonthProperty = typeof(CitizenVerificationRequest).GetProperty(nameof(CitizenVerificationRequest.BirthMonth));
         birthMonthProperty.Should().NotBeNull();
         birthMonthProperty!.GetCustomAttributes(typeof(RequiredAttribute), false).Should().NotBeEmpty();
         birthMonthProperty.GetCustomAttributes(typeof(StringLengthAttribute), false).Should().NotBeEmpty();
 
-        var birthDayProperty = typeof(QueryRequest).GetProperty(nameof(QueryRequest.BirthDay));
+        var birthDayProperty = typeof(CitizenVerificationRequest).GetProperty(nameof(CitizenVerificationRequest.BirthDay));
         birthDayProperty.Should().NotBeNull();
         birthDayProperty!.GetCustomAttributes(typeof(RequiredAttribute), false).Should().NotBeEmpty();
         birthDayProperty.GetCustomAttributes(typeof(StringLengthAttribute), false).Should().NotBeEmpty();
     }
 
     [Fact]
-    public void QueryRequest_ShouldInitializeWithEmptyStrings()
+    public void CitizenVerificationRequest_ShouldInitializeWithEmptyStrings()
     {
         // Act
-        var request = new QueryRequest();
+        var request = new CitizenVerificationRequest();
 
         // Assert
         request.TCNo.Should().BeEmpty();
@@ -59,10 +59,10 @@ public class QueryRequestTests
     }
 
     [Fact]
-    public void QueryRequest_ShouldAllowSettingProperties()
+    public void CitizenVerificationRequest_ShouldAllowSettingProperties()
     {
         // Arrange
-        var request = new QueryRequest();
+        var request = new CitizenVerificationRequest();
 
         // Act
         request.TCNo = "12345678901";

@@ -19,9 +19,9 @@ public class KpsClient(
     private readonly KpsOptions _options = options;
 
     /// <summary>
-    /// Performs a query to the KPS service
+    /// Verifies a citizen's identity using the KPS service
     /// </summary>
-    public async Task<QueryResult> QueryAsync(QueryRequest request, CancellationToken cancellationToken = default)
+    public async Task<QueryResult> VerifyCitizenAsync(CitizenVerificationRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -59,9 +59,9 @@ public class KpsClient(
     }
 
     /// <summary>
-    /// Validates the query request
+    /// Validates the citizen verification request
     /// </summary>
-    private static void ValidateRequest(QueryRequest request)
+    private static void ValidateRequest(CitizenVerificationRequest request)
     {
         if (request == null)
             throw new ArgumentNullException(nameof(request));

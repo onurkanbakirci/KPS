@@ -42,8 +42,8 @@ var client = new KpsClientBuilder()
     .WithRawResponse(false)
     .Build();
 
-// Create a query request
-var request = new QueryRequest
+// Create a citizen verification request
+var request = new CitizenVerificationRequest
 {
     TCNo = "99999999999",
     FirstName = "JOHN",
@@ -53,8 +53,8 @@ var request = new QueryRequest
     BirthDay = "01"
 };
 
-// Perform the query
-var result = await client.QueryAsync(request);
+// Verify citizen identity
+var result = await client.VerifyCitizenAsync(request);
 
 if (result.Status)
 {
@@ -119,7 +119,7 @@ public class MyService
     public async Task<bool> ValidatePersonAsync(string tcNo, string firstName, string lastName, 
         string birthYear, string birthMonth, string birthDay)
     {
-        var request = new QueryRequest
+        var request = new CitizenVerificationRequest
         {
             TCNo = tcNo,
             FirstName = firstName,
@@ -129,7 +129,7 @@ public class MyService
             BirthDay = birthDay
         };
 
-        var result = await _kpsClient.QueryAsync(request);
+        var result = await _kpsClient.VerifyCitizenAsync(request);
         return result.Status;
     }
 }
@@ -137,12 +137,12 @@ public class MyService
 
 ## API Reference
 
-### QueryRequest
+### CitizenVerificationRequest
 
-Represents a query request to the KPS service:
+Represents a citizen verification request to the KPS service:
 
 ```csharp
-public class QueryRequest
+public class CitizenVerificationRequest
 {
     public string TCNo { get; set; }        // Turkish Republic Identity Number (11 digits)
     public string FirstName { get; set; }   // First name

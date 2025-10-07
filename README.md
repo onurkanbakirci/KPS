@@ -28,8 +28,8 @@ var client = new KpsClientBuilder()
     .WithKpsEndpoint("https://tckimlik.nvi.gov.tr/Service/KPSPublic")  // Custom KPS endpoint
     .Build();
 
-// Create query request
-var request = new QueryRequest
+// Create citizen verification request
+var request = new CitizenVerificationRequest
 {
     TCNo = "12345678901",
     FirstName = "JOHN",
@@ -39,8 +39,8 @@ var request = new QueryRequest
     BirthDay = "01"
 };
 
-// Perform the query
-var result = await client.QueryAsync(request);
+// Verify citizen identity
+var result = await client.VerifyCitizenAsync(request);
 
 if (result.Status)
 {

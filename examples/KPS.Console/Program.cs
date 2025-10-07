@@ -8,7 +8,7 @@ var kpsClient = new KpsClientBuilder()
     .WithRawResponse(false)
     .Build();
 
-var request = new QueryRequest
+var request = new CitizenVerificationRequest
 {
     TCNo = "12345678901",
     FirstName = "JOHN",
@@ -18,6 +18,6 @@ var request = new QueryRequest
     BirthDay = "01"
 };
 
-var httpResponse = await kpsClient.QueryAsync(request);
+var httpResponse = await kpsClient.VerifyCitizenAsync(request);
 
 Console.WriteLine(httpResponse.Status);

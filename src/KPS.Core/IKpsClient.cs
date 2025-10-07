@@ -8,10 +8,10 @@ namespace KPS.Core;
 public interface IKpsClient
 {
     /// <summary>
-    /// Performs a query to the KPS service
+    /// Verifies a citizen's identity using the KPS service
     /// </summary>
-    /// <param name="request">Query request containing person information</param>
+    /// <param name="request">Citizen verification request containing person information</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Query result</returns>
-    Task<QueryResult> QueryAsync(QueryRequest request, CancellationToken cancellationToken = default);
+    /// <returns>Verification result</returns>
+    Task<QueryResult> VerifyCitizenAsync(CitizenVerificationRequest request, CancellationToken cancellationToken = default);
 }
