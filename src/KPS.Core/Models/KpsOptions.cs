@@ -36,12 +36,17 @@ public class KpsOptions
     public bool IncludeRawResponse { get; set; } = false;
 
     /// <summary>
-    /// Base64-encoded signing key for HMAC-SHA1 signatures
+    /// Base64-encoded signing key for HMAC-SHA1 signatures (BinarySecret from STS)
     /// </summary>
     public string SigningKey { get; set; } = string.Empty;
 
     /// <summary>
-    /// SAML Assertion ID for message signing
+    /// SAML Assertion ID for message signing (KeyIdentifier from STS)
     /// </summary>
     public string AssertionId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Encrypted token XML from STS (RequestedSecurityToken inner XML)
+    /// </summary>
+    public string TokenXml { get; set; } = string.Empty;
 }

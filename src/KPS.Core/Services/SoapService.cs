@@ -24,14 +24,21 @@ public class SoapService(HttpClient httpClient, KpsOptions options) : ISoapServi
     {
         try
         {
-            var soapEnvelope = CreateSoapEnvelope(request, samlToken);
+            // Use TokenXml from options (set by StsService) instead of the samlToken parameter
+            var tokenXml = string.IsNullOrEmpty(_options.TokenXml) ? samlToken : _options.TokenXml;
+            
+            var soapEnvelope = CreateSoapEnvelope(request, tokenXml);
             var signedEnvelope = SignSoapEnvelope(soapEnvelope);
             
             var content = new StringContent(signedEnvelope, Encoding.UTF8, "application/soap+xml");
-            content.Headers.Add("SOAPAction", "\"http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis/Sorgula\"");
 
             var response = await _httpClient.PostAsync(_options.KpsEndpoint, content, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException($"KPS service returned status {response.StatusCode}: {errorContent}");
+            }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -39,7 +46,7 @@ public class SoapService(HttpClient httpClient, KpsOptions options) : ISoapServi
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException("Failed to query KPS service", ex);
+            throw new InvalidOperationException($"Failed to query KPS service: {ex.GetType().Name} - {ex.Message}", ex);
         }
     }
 

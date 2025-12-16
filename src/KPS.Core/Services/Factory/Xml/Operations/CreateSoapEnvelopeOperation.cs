@@ -20,35 +20,35 @@ internal class CreateSoapEnvelopeOperation : IXmlOperation
 
     public string Execute(XmlDocument xmlDoc, XmlNamespaceManager nsManager)
     {
+        var messageId = $"urn:uuid:{Guid.NewGuid()}";
+        var actionUri = "http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis/Sorgula";
+        var toUri = "https://kpsv2.nvi.gov.tr/Services/RoutingService.svc";
+
         return $@"<?xml version=""1.0"" encoding=""utf-8""?>
-<soap:Envelope xmlns:soap=""http://www.w3.org/2003/05/soap-envelope""
-               xmlns:wsa=""http://www.w3.org/2005/08/addressing""
-               xmlns:wsu=""http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd""
-               xmlns:wsse=""http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd""
-               xmlns:tns=""http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis"">
-  <soap:Header>
-    <wsa:Action>http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis/Sorgula</wsa:Action>
-    <wsa:To>https://kpsv2.nvi.gov.tr/Services/RoutingService.svc</wsa:To>
-    <wsa:MessageID>urn:uuid:{Guid.NewGuid()}</wsa:MessageID>
-    <wsse:Security>
+<s:Envelope xmlns:s=""http://www.w3.org/2003/05/soap-envelope"">
+  <s:Header>
+    <a:MessageID xmlns:a=""http://www.w3.org/2005/08/addressing"">{messageId}</a:MessageID>
+    <a:To xmlns:a=""http://www.w3.org/2005/08/addressing"" s:mustUnderstand=""1"">{toUri}</a:To>
+    <a:Action xmlns:a=""http://www.w3.org/2005/08/addressing"" s:mustUnderstand=""1"">{actionUri}</a:Action>
+    <wsse:Security xmlns:wsse=""http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"" xmlns:wsu=""http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"" s:mustUnderstand=""1"">
       {_samlToken}
     </wsse:Security>
-  </soap:Header>
-  <soap:Body>
-    <tns:Sorgula xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">
-      <tns:kriterListesi>
-        <tns:TumKutukDogrulamaSorguKriteri>
-          <tns:Ad>{XmlEscape(_request.FirstName)}</tns:Ad>
-          <tns:DogumAy>{XmlEscape(ZeroIfEmpty(_request.BirthMonth))}</tns:DogumAy>
-          <tns:DogumGun>{XmlEscape(ZeroIfEmpty(_request.BirthDay))}</tns:DogumGun>
-          <tns:DogumYil>{XmlEscape(_request.BirthYear)}</tns:DogumYil>
-          <tns:KimlikNo>{XmlEscape(_request.TCNo)}</tns:KimlikNo>
-          <tns:Soyad>{XmlEscape(_request.LastName)}</tns:Soyad>
-        </tns:TumKutukDogrulamaSorguKriteri>
-      </tns:kriterListesi>
-    </tns:Sorgula>
-  </soap:Body>
-</soap:Envelope>";
+  </s:Header>
+  <s:Body>
+    <Sorgula xmlns=""http://kps.nvi.gov.tr/2025/08/01"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">
+      <kriterListesi>
+        <TumKutukDogrulamaSorguKriteri>
+          <Ad>{XmlEscape(_request.FirstName)}</Ad>
+          <DogumAy>{XmlEscape(ZeroIfEmpty(_request.BirthMonth))}</DogumAy>
+          <DogumGun>{XmlEscape(ZeroIfEmpty(_request.BirthDay))}</DogumGun>
+          <DogumYil>{XmlEscape(_request.BirthYear)}</DogumYil>
+          <KimlikNo>{XmlEscape(_request.TCNo)}</KimlikNo>
+          <Soyad>{XmlEscape(_request.LastName)}</Soyad>
+        </TumKutukDogrulamaSorguKriteri>
+      </kriterListesi>
+    </Sorgula>
+  </s:Body>
+</s:Envelope>";
     }
 
     private static string XmlEscape(string text)

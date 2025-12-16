@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Xml;
 using KPS.Core.Models;
 using KPS.Core.Services.Abstract;
@@ -24,18 +25,24 @@ public class StsService(HttpClient httpClient, KpsOptions options) : IStsService
       var soapEnvelope = CreateWsTrustRequest(username, password);
       var content = new StringContent(soapEnvelope, Encoding.UTF8, "application/soap+xml");
 
-      // Add required SOAP headers
-      content.Headers.Add("SOAPAction", "\"http://docs.oasis-open.org/ws-sx/ws-trust/200512/RST/Issue\"");
-
       var response = await _httpClient.PostAsync(_options.StsEndpoint, content, cancellationToken);
+
+      if (!response.IsSuccessStatusCode)
+      {
+        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException($"STS service returned status {response.StatusCode}: {errorContent}");
+      }
 
       var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
-      return ExtractTokenFromResponse(responseContent);
+      // Extract and store STS artifacts in options
+      ExtractAndStoreTokenArtifacts(responseContent);
+
+      return _options.TokenXml;
     }
     catch (Exception ex)
     {
-      throw new InvalidOperationException("Failed to authenticate with STS service", ex);
+      throw new InvalidOperationException($"Failed to authenticate with STS service: {ex.GetType().Name} - {ex.Message}", ex);
     }
   }
 
@@ -49,11 +56,29 @@ public class StsService(HttpClient httpClient, KpsOptions options) : IStsService
   }
 
   /// <summary>
-  /// Extracts the SAML token from the STS response using factory pattern
+  /// Extracts the STS artifacts from the response and stores them in options
   /// </summary>
-  private static string ExtractTokenFromResponse(string response)
+  private void ExtractAndStoreTokenArtifacts(string response)
   {
     var operation = XmlOperationFactory.CreateExtractSamlTokenOperation(response);
-    return operation.Execute(new XmlDocument(), new XmlNamespaceManager(new NameTable()));
+    var jsonResult = operation.Execute(new XmlDocument(), new XmlNamespaceManager(new NameTable()));
+    
+    var artifacts = JsonSerializer.Deserialize<StsArtifacts>(jsonResult);
+    if (artifacts == null)
+    {
+      throw new InvalidOperationException("Failed to deserialize STS artifacts");
+    }
+
+    // Store the artifacts in the options for use in subsequent SOAP requests
+    _options.SigningKey = artifacts.BinarySecret;
+    _options.AssertionId = artifacts.KeyIdentifier;
+    _options.TokenXml = artifacts.TokenXml;
+  }
+
+  private class StsArtifacts
+  {
+    public string BinarySecret { get; set; } = string.Empty;
+    public string KeyIdentifier { get; set; } = string.Empty;
+    public string TokenXml { get; set; } = string.Empty;
   }
 }
