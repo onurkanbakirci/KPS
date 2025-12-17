@@ -111,7 +111,9 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
 
         var c14nTransform = new XmlDsigExcC14NTransform();
         c14nTransform.LoadInput(tempDoc);
-        var c14nTimestamp = (byte[])c14nTransform.GetOutput(typeof(byte[]));
+        
+        using var c14nStream = (MemoryStream)c14nTransform.GetOutput(typeof(Stream));
+        var c14nTimestamp = c14nStream.ToArray();
         var timestampDigest = SHA1.HashData(c14nTimestamp);
 
         var digestValue = xmlDoc.CreateElement("dsig", "DigestValue", "http://www.w3.org/2000/09/xmldsig#");
@@ -132,7 +134,9 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
 
         var c14nTransformSI = new XmlDsigExcC14NTransform();
         c14nTransformSI.LoadInput(tempDoc);
-        var c14nSignedInfo = (byte[])c14nTransformSI.GetOutput(typeof(byte[]));
+        
+        using var c14nStream = (MemoryStream)c14nTransformSI.GetOutput(typeof(Stream));
+        var c14nSignedInfo = c14nStream.ToArray();
 
         using var hmac = new HMACSHA1(Convert.FromBase64String(_options.SigningKey));
         var signatureValue = hmac.ComputeHash(c14nSignedInfo);
