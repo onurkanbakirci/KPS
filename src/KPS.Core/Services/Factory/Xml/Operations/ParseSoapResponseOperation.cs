@@ -46,19 +46,25 @@ internal class ParseSoapResponseOperation : IXmlOperation
                 xmlDoc.Load(xmlReader);
             }
 
-            nsManager.AddNamespace("tns", "http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis");
-
-            // Check for SOAP fault
-            var faultNode = xmlDoc.SelectSingleNode("//soap:Fault", nsManager);
+            // Check for SOAP fault (namespace-agnostic)
+            var faultNode = xmlDoc.SelectSingleNode("//*[local-name()='Fault']", nsManager);
             if (faultNode != null)
             {
-                var faultCode = faultNode.SelectSingleNode("faultcode")?.InnerText ?? "Unknown";
-                var faultString = faultNode.SelectSingleNode("faultstring")?.InnerText ?? "Unknown error";
-                throw new InvalidOperationException($"SOAP fault received: {faultCode} - {faultString}");
+                var faultCode = GetNodeText(faultNode, ".//*[local-name()='faultcode']");
+                if (string.IsNullOrEmpty(faultCode))
+                {
+                    faultCode = GetNodeText(faultNode, ".//*[local-name()='Code']/*[local-name()='Value']");
+                }
+                var faultString = GetNodeText(faultNode, ".//*[local-name()='faultstring']");
+                if (string.IsNullOrEmpty(faultString))
+                {
+                    faultString = GetNodeText(faultNode, ".//*[local-name()='Reason']/*[local-name()='Text']");
+                }
+                throw new InvalidOperationException($"SOAP fault received: {(string.IsNullOrEmpty(faultCode) ? "Unknown" : faultCode)} - {(string.IsNullOrEmpty(faultString) ? "Unknown error" : faultString)}");
             }
 
-            // Look for the response node
-            var resultNode = xmlDoc.SelectSingleNode("//tns:SorgulaResponse", nsManager);
+            // Look for the response node (namespace-agnostic using local-name())
+            var resultNode = xmlDoc.SelectSingleNode("//*[local-name()='SorgulaResponse']", nsManager);
             if (resultNode == null)
             {
                 throw new InvalidOperationException("Invalid response format from KPS service");
