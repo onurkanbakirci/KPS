@@ -37,8 +37,12 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
             existingChildren.Add(child);
         }
 
-        // Clear Security node to rebuild in correct order
-        securityNode.RemoveAll();
+        // Clear Security node children only (preserve attributes like s:mustUnderstand="1")
+        // Note: RemoveAll() would also remove attributes which breaks the SOAP envelope
+        while (securityNode.HasChildNodes)
+        {
+            securityNode.RemoveChild(securityNode.FirstChild!);
+        }
 
         // Create nodes
         var timestampNode = CreateTimestampNode(xmlDoc, now, expires);
