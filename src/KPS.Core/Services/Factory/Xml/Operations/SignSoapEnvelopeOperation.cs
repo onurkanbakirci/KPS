@@ -105,9 +105,12 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
         digestMethod.SetAttribute("Algorithm", "http://www.w3.org/2000/09/xmldsig#sha1");
         reference.AppendChild(digestMethod);
 
-        // Calculate digest
+        // Calculate digest - Create a temporary document with the timestamp node
+        var tempDoc = new XmlDocument();
+        tempDoc.LoadXml(timestampNode.OuterXml);
+
         var c14nTransform = new XmlDsigExcC14NTransform();
-        c14nTransform.LoadInput(timestampNode);
+        c14nTransform.LoadInput(tempDoc);
         var c14nTimestamp = (byte[])c14nTransform.GetOutput(typeof(byte[]));
         var timestampDigest = SHA1.HashData(c14nTimestamp);
 
@@ -123,9 +126,12 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
         var signatureElement = xmlDoc.CreateElement("dsig", "Signature", "http://www.w3.org/2000/09/xmldsig#");
         signatureElement.AppendChild(signedInfo);
 
-        // Calculate signature
+        // Calculate signature - Create a temporary document with the signed info node
+        var tempDoc = new XmlDocument();
+        tempDoc.LoadXml(signedInfo.OuterXml);
+
         var c14nTransformSI = new XmlDsigExcC14NTransform();
-        c14nTransformSI.LoadInput(signedInfo);
+        c14nTransformSI.LoadInput(tempDoc);
         var c14nSignedInfo = (byte[])c14nTransformSI.GetOutput(typeof(byte[]));
 
         using var hmac = new HMACSHA1(Convert.FromBase64String(_options.SigningKey));
