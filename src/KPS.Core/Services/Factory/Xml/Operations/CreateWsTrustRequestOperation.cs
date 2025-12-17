@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Xml;
 using KPS.Core.Services.Factory.Xml.Abstract;
 
@@ -8,25 +9,25 @@ namespace KPS.Core.Services.Factory.Xml.Operations;
 /// </summary>
 internal class CreateWsTrustRequestOperation : IXmlOperation
 {
-    private readonly string _username;
-    private readonly string _password;
+  private readonly string _username;
+  private readonly string _password;
 
-    public CreateWsTrustRequestOperation(string username, string password)
-    {
-        _username = username;
-        _password = password;
-    }
+  public CreateWsTrustRequestOperation(string username, string password)
+  {
+    _username = username;
+    _password = password;
+  }
 
-    public string Execute(XmlDocument xmlDoc, XmlNamespaceManager nsManager)
-    {
-        var now = DateTime.UtcNow;
-        var created = now.ToString("yyyy-MM-ddTHH:mm:ssZ");
-        var expires = now.AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ssZ");
-        var messageId = $"urn:uuid:{Guid.NewGuid()}";
-        var stsEndpoint = "https://kimlikdogrulama.nvi.gov.tr/Services/Issuer.svc/IWSTrust13";
-        var kpsEndpoint = "https://kpsv2.nvi.gov.tr/Services/RoutingService.svc";
+  public string Execute(XmlDocument xmlDoc, XmlNamespaceManager nsManager)
+  {
+    var now = DateTime.UtcNow;
+    var created = now.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
+    var expires = now.AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
+    var messageId = $"urn:uuid:{Guid.NewGuid()}";
+    var stsEndpoint = "https://kimlikdogrulama.nvi.gov.tr/Services/Issuer.svc/IWSTrust13";
+    var kpsEndpoint = "https://kpsv2.nvi.gov.tr/Services/RoutingService.svc";
 
-        return $@"<?xml version=""1.0"" encoding=""utf-8""?>
+    return $@"<?xml version=""1.0"" encoding=""utf-8""?>
 <s:Envelope xmlns:s=""http://www.w3.org/2003/05/soap-envelope"" xmlns:a=""http://www.w3.org/2005/08/addressing"" xmlns:wst=""http://docs.oasis-open.org/ws-sx/ws-trust/200512"" xmlns:wsse=""http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"" xmlns:wsu=""http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"" xmlns:wsp=""http://schemas.xmlsoap.org/ws/2004/09/policy"">
   <s:Header>
     <a:MessageID>{messageId}</a:MessageID>
@@ -56,14 +57,14 @@ internal class CreateWsTrustRequestOperation : IXmlOperation
     </wst:RequestSecurityToken>
   </s:Body>
 </s:Envelope>";
-    }
+  }
 
-    private static string XmlEscape(string text)
-    {
-        return text.Replace("&", "&amp;")
-                  .Replace("<", "&lt;")
-                  .Replace(">", "&gt;")
-                  .Replace("\"", "&quot;")
-                  .Replace("'", "&apos;");
-    }
+  private static string XmlEscape(string text)
+  {
+    return text.Replace("&", "&amp;")
+              .Replace("<", "&lt;")
+              .Replace(">", "&gt;")
+              .Replace("\"", "&quot;")
+              .Replace("'", "&apos;");
+  }
 }

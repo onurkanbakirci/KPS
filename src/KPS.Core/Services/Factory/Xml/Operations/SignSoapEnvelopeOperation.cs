@@ -23,21 +23,34 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(5);
 
-        // Add timestamp
+        // Get Security node
         var securityNode = xmlDoc.SelectSingleNode("//wsse:Security", nsManager);
         if (securityNode == null)
         {
             throw new InvalidOperationException("Security header not found");
         }
 
+        // Save existing children (TokenXML) to re-add in correct order
+        var existingChildren = new List<XmlNode>();
+        foreach (XmlNode child in securityNode.ChildNodes)
+        {
+            existingChildren.Add(child);
+        }
+
+        // Clear Security node to rebuild in correct order
+        securityNode.RemoveAll();
+
+        // Create nodes
         var timestampNode = CreateTimestampNode(xmlDoc, now, expires);
-        securityNode.AppendChild(timestampNode);
-
-        // Create SignedInfo
         var signedInfo = CreateSignedInfoNode(xmlDoc, timestampNode);
-
-        // Create Signature element
         var signatureElement = CreateSignatureElement(xmlDoc, signedInfo);
+
+        // Add in correct order: Timestamp -> TokenXML -> Signature (matching Go implementation)
+        securityNode.AppendChild(timestampNode);
+        foreach (var child in existingChildren)
+        {
+            securityNode.AppendChild(child);
+        }
         securityNode.AppendChild(signatureElement);
 
         return xmlDoc.OuterXml;
@@ -49,11 +62,11 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
         timestampNode.SetAttribute("Id", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd", "_0");
 
         var createdNode = xmlDoc.CreateElement("wsu", "Created", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
-        createdNode.InnerText = now.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        createdNode.InnerText = now.ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
         timestampNode.AppendChild(createdNode);
 
         var expiresNode = xmlDoc.CreateElement("wsu", "Expires", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
-        expiresNode.InnerText = expires.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        expiresNode.InnerText = expires.ToString("yyyy-MM-ddTHH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
         timestampNode.AppendChild(expiresNode);
 
         return timestampNode;
