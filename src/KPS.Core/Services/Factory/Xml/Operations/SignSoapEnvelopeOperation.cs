@@ -92,6 +92,8 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
     private XmlElement CreateTimestampNode(XmlDocument xmlDoc, DateTime now, DateTime expires)
     {
         var timestampNode = xmlDoc.CreateElement("wsu", "Timestamp", WsuNamespace);
+        // Explicitly declare xmlns:wsu on Timestamp (matching Go implementation)
+        timestampNode.SetAttribute("xmlns:wsu", WsuNamespace);
         timestampNode.SetAttribute("Id", WsuNamespace, "_0");
 
         var createdNode = xmlDoc.CreateElement("wsu", "Created", WsuNamespace);
@@ -108,6 +110,8 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
     private XmlElement CreateSignedInfoNode(XmlDocument xmlDoc, XmlElement timestampNode)
     {
         var signedInfo = xmlDoc.CreateElement("dsig", "SignedInfo", DsigNamespace);
+        // Explicitly declare xmlns:dsig on SignedInfo (matching Go implementation)
+        signedInfo.SetAttribute("xmlns:dsig", DsigNamespace);
 
         var c14nMethod = xmlDoc.CreateElement("dsig", "CanonicalizationMethod", DsigNamespace);
         c14nMethod.SetAttribute("Algorithm", ExcC14NAlgorithm);
@@ -174,6 +178,8 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
 
         // NOW build the Signature element structure after signature calculation
         var signatureElement = xmlDoc.CreateElement("dsig", "Signature", DsigNamespace);
+        // Explicitly declare xmlns:dsig on the Signature element (matching Go implementation)
+        signatureElement.SetAttribute("xmlns:dsig", DsigNamespace);
         signatureElement.AppendChild(signedInfo);
 
         var signatureValueElement = xmlDoc.CreateElement("dsig", "SignatureValue", DsigNamespace);
@@ -190,6 +196,8 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
     {
         var keyInfo = xmlDoc.CreateElement("dsig", "KeyInfo", DsigNamespace);
         var securityTokenReference = xmlDoc.CreateElement("wsse", "SecurityTokenReference", WsseNamespace);
+        // Explicitly declare xmlns:wsse on SecurityTokenReference (matching Go implementation)
+        securityTokenReference.SetAttribute("xmlns:wsse", WsseNamespace);
         var keyIdentifier = xmlDoc.CreateElement("wsse", "KeyIdentifier", WsseNamespace);
         keyIdentifier.SetAttribute("ValueType", SamlAssertionIdValueType);
         keyIdentifier.InnerText = _options.AssertionId;
