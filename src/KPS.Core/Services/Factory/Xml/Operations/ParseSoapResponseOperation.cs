@@ -3,7 +3,6 @@ using KPS.Core.Models;
 using KPS.Core.Models.Result;
 using KPS.Core.Services.Factory.PersonSearch.Factories;
 using KPS.Core.Services.Factory.Xml.Abstract;
-using KPS.Core.Services.Factory.Xml.Factories;
 
 namespace KPS.Core.Services.Factory.Xml.Operations;
 

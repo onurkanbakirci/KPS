@@ -9,6 +9,10 @@ namespace KPS.Core.Services.Factory.Xml.Operations;
 /// </summary>
 internal class ExtractSamlTokenOperation : IXmlOperation
 {
+    private const string SoapNamespace = "http://www.w3.org/2003/05/soap-envelope";
+    private const string WsTrustNamespace = "http://docs.oasis-open.org/ws-sx/ws-trust/200512";
+    private const string WsseNamespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
+
     private readonly string _response;
 
     public ExtractSamlTokenOperation(string response)
@@ -22,10 +26,10 @@ internal class ExtractSamlTokenOperation : IXmlOperation
         {
             xmlDoc.LoadXml(_response);
 
-            // Use SOAP 1.2 namespace
-            nsManager.AddNamespace("s", "http://www.w3.org/2003/05/soap-envelope");
-            nsManager.AddNamespace("wst", "http://docs.oasis-open.org/ws-sx/ws-trust/200512");
-            nsManager.AddNamespace("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd");
+            // Setup namespace manager for XPath queries
+            nsManager.AddNamespace("s", SoapNamespace);
+            nsManager.AddNamespace("wst", WsTrustNamespace);
+            nsManager.AddNamespace("wsse", WsseNamespace);
 
             // Extract BinarySecret (HMAC key)
             var binarySecretNode = xmlDoc.SelectSingleNode("//wst:BinarySecret", nsManager);

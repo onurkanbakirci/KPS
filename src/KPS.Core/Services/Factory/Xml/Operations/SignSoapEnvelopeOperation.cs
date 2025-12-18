@@ -133,7 +133,8 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
     /// </summary>
     private static string FormatTimestamp(DateTime dt)
     {
-        return dt.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+        // Use 'Z' with quotes for literal Z character (not timezone offset)
+        return dt.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
     }
 
     /// <summary>
