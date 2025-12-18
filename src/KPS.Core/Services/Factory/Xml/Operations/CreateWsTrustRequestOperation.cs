@@ -1,4 +1,4 @@
-using System.Text;
+using System.Globalization;
 using System.Xml;
 using KPS.Core.Services.Factory.Xml.Abstract;
 
@@ -20,64 +20,60 @@ internal class CreateWsTrustRequestOperation : IXmlOperation
   // WS-Trust action and type constants
   private const string WsTrustIssueAction = "http://docs.oasis-open.org/ws-sx/ws-trust/200512/RST/Issue";
   private const string WsTrustIssueRequestType = "http://docs.oasis-open.org/ws-sx/ws-trust/200512/Issue";
+  private const string WsTrustSymmetricKeyType = "http://docs.oasis-open.org/ws-sx/ws-trust/200512/SymmetricKey";
+  private const string SamlTokenType = "http://docs.oasis-open.org/wss/oasis-wss-saml-token-profile-1.1#SAMLV1.1";
   private const string PasswordTextType = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText";
+
+  // Endpoint constants
+  private const string StsEndpoint = "https://kimlikdogrulama.nvi.gov.tr/Services/Issuer.svc/IWSTrust13";
+  private const string KpsEndpoint = "https://kpsv2.nvi.gov.tr/Services/RoutingService.svc";
 
   private readonly string _username;
   private readonly string _password;
-  private readonly string _stsEndpoint;
-  private readonly string _kpsEndpoint;
 
-  public CreateWsTrustRequestOperation(string username, string password, string stsEndpoint, string kpsEndpoint)
+  public CreateWsTrustRequestOperation(string username, string password)
   {
     _username = username;
     _password = password;
-    _stsEndpoint = stsEndpoint;
-    _kpsEndpoint = kpsEndpoint;
   }
 
   public string Execute(XmlDocument xmlDoc, XmlNamespaceManager nsManager)
   {
     var now = DateTime.UtcNow;
-    var created = now.ToString("o"); // ISO 8601 format with milliseconds
-    var expires = now.AddMinutes(5).ToString("o");
+        var created = now.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
+        var expires = now.AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
     var messageId = $"urn:uuid:{Guid.NewGuid()}";
-    var usernameTokenId = $"uuid-{Guid.NewGuid()}";
 
-    var sb = new StringBuilder();
-    sb.Append("<?xml version='1.0' encoding='utf-8'?>");
-    sb.Append($"<s:Envelope xmlns:s='{SoapNamespace}' xmlns:a='{WsaNamespace}' xmlns:u='{WsuNamespace}'>");
-    sb.Append("<s:Header>");
-    sb.Append($"<a:Action s:mustUnderstand='1'>{WsTrustIssueAction}</a:Action>");
-    sb.Append($"<a:MessageID>{messageId}</a:MessageID>");
-    sb.Append("<a:ReplyTo>");
-    sb.Append("<a:Address>http://www.w3.org/2005/08/addressing/anonymous</a:Address>");
-    sb.Append("</a:ReplyTo>");
-    sb.Append($"<Sorgulayan>{XmlEscape(_username)}</Sorgulayan>");
-    sb.Append($"<a:To s:mustUnderstand='1'>{_stsEndpoint}</a:To>");
-    sb.Append($"<o:Security s:mustUnderstand='1' xmlns:o='{WsseNamespace}'>");
-    sb.Append("<u:Timestamp u:Id='_0'>");
-    sb.Append($"<u:Created>{created}</u:Created>");
-    sb.Append($"<u:Expires>{expires}</u:Expires>");
-    sb.Append("</u:Timestamp>");
-    sb.Append($"<o:UsernameToken u:Id='{usernameTokenId}'>");
-    sb.Append($"<o:Username>{XmlEscape(_username)}</o:Username>");
-    sb.Append($"<o:Password Type='{PasswordTextType}'>{XmlEscape(_password)}</o:Password>");
-    sb.Append("</o:UsernameToken>");
-    sb.Append("</o:Security>");
-    sb.Append("</s:Header>");
-    sb.Append("<s:Body>");
-    sb.Append($"<trust:RequestSecurityToken xmlns:trust='{WsTrustNamespace}'>");
-    sb.Append($"<wsp:AppliesTo xmlns:wsp='{WspNamespace}'>");
-    sb.Append("<a:EndpointReference>");
-    sb.Append($"<a:Address>{_kpsEndpoint}</a:Address>");
-    sb.Append("</a:EndpointReference>");
-    sb.Append("</wsp:AppliesTo>");
-    sb.Append($"<trust:RequestType>{WsTrustIssueRequestType}</trust:RequestType>");
-    sb.Append("</trust:RequestSecurityToken>");
-    sb.Append("</s:Body>");
-    sb.Append("</s:Envelope>");
-
-    return sb.ToString();
+    return $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<s:Envelope xmlns:s=""{SoapNamespace}"" xmlns:a=""{WsaNamespace}"" xmlns:wst=""{WsTrustNamespace}"" xmlns:wsse=""{WsseNamespace}"" xmlns:wsu=""{WsuNamespace}"" xmlns:wsp=""{WspNamespace}"">
+  <s:Header>
+    <a:MessageID>{messageId}</a:MessageID>
+    <a:To>{StsEndpoint}</a:To>
+    <a:Action>{WsTrustIssueAction}</a:Action>
+    <wsse:Security s:mustUnderstand=""1"">
+      <wsu:Timestamp wsu:Id=""_0"">
+        <wsu:Created>{created}</wsu:Created>
+        <wsu:Expires>{expires}</wsu:Expires>
+      </wsu:Timestamp>
+      <wsse:UsernameToken wsu:Id=""Me"">
+        <wsse:Username>{XmlEscape(_username)}</wsse:Username>
+        <wsse:Password Type=""{PasswordTextType}"">{XmlEscape(_password)}</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </s:Header>
+  <s:Body>
+    <wst:RequestSecurityToken>
+      <wst:TokenType>{SamlTokenType}</wst:TokenType>
+      <wst:RequestType>{WsTrustIssueRequestType}</wst:RequestType>
+      <wsp:AppliesTo>
+        <a:EndpointReference>
+          <a:Address>{KpsEndpoint}</a:Address>
+        </a:EndpointReference>
+      </wsp:AppliesTo>
+      <wst:KeyType>{WsTrustSymmetricKeyType}</wst:KeyType>
+    </wst:RequestSecurityToken>
+  </s:Body>
+</s:Envelope>";
   }
 
   private static string XmlEscape(string text)

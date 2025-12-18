@@ -10,9 +10,9 @@ namespace KPS.Core.Services.Factory.Xml.Factories;
 /// </summary>
 internal static class XmlOperationFactory
 {
-    public static IXmlOperation CreateSoapEnvelopeOperation(CitizenVerificationRequest request, string samlToken, KpsOptions options)
+    public static IXmlOperation CreateSoapEnvelopeOperation(CitizenVerificationRequest request, string samlToken)
     {
-        return new CreateSoapEnvelopeOperation(request, samlToken, options);
+        return new CreateSoapEnvelopeOperation(request, samlToken);
     }
 
     public static IXmlOperation CreateSignSoapEnvelopeOperation(KpsOptions options)
@@ -20,9 +20,9 @@ internal static class XmlOperationFactory
         return new SignSoapEnvelopeOperation(options);
     }
 
-    public static IXmlOperation CreateWsTrustRequestOperation(string username, string password, string stsEndpoint, string kpsEndpoint)
+    public static IXmlOperation CreateWsTrustRequestOperation(string username, string password)
     {
-        return new CreateWsTrustRequestOperation(username, password, stsEndpoint, kpsEndpoint);
+        return new CreateWsTrustRequestOperation(username, password);
     }
 
     public static IXmlOperation CreateExtractSamlTokenOperation(string response)

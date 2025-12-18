@@ -53,9 +53,9 @@ public class SoapService(HttpClient httpClient, KpsOptions options) : ISoapServi
     /// <summary>
     /// Creates the SOAP envelope for the KPS query
     /// </summary>
-    private string CreateSoapEnvelope(CitizenVerificationRequest request, string samlToken)
+    private static string CreateSoapEnvelope(CitizenVerificationRequest request, string samlToken)
     {
-        var operation = XmlOperationFactory.CreateSoapEnvelopeOperation(request, samlToken, _options);
+        var operation = XmlOperationFactory.CreateSoapEnvelopeOperation(request, samlToken);
         return operation.Execute(new XmlDocument(), new XmlNamespaceManager(new NameTable()));
     }
 

@@ -1,5 +1,6 @@
+using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
+using System.Security.Cryptography.Xml;
 using System.Xml;
 using KPS.Core.Models;
 using KPS.Core.Services.Factory.Xml.Abstract;
@@ -7,19 +8,17 @@ using KPS.Core.Services.Factory.Xml.Abstract;
 namespace KPS.Core.Services.Factory.Xml.Operations;
 
 /// <summary>
-/// Operation for signing SOAP envelope using HMAC-SHA1 (matching working KpsTest implementation)
+/// Operation for signing SOAP envelope using HMAC-SHA1 (matching Go implementation)
 /// </summary>
 internal class SignSoapEnvelopeOperation : IXmlOperation
 {
     private const string WsuNamespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd";
     private const string WsseNamespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
-    private const string Wsse11Namespace = "http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd";
     private const string DsigNamespace = "http://www.w3.org/2000/09/xmldsig#";
     private const string ExcC14NAlgorithm = "http://www.w3.org/2001/10/xml-exc-c14n#";
     private const string HmacSha1Algorithm = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
     private const string Sha1Algorithm = "http://www.w3.org/2000/09/xmldsig#sha1";
     private const string SamlAssertionIdValueType = "http://docs.oasis-open.org/wss/oasis-wss-saml-token-profile-1.0#SAMLAssertionID";
-    private const string SamlTokenType = "http://docs.oasis-open.org/wss/oasis-wss-saml-token-profile-1.1#SAMLV1.1";
 
     private readonly KpsOptions _options;
 
@@ -43,25 +42,14 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(5);
 
-        // Build timestamp string exactly like the working version
-        var timestampString = BuildTimestampString(now, expires);
-
-        // Calculate digest using simple string-based SHA1 (like working version)
-        var digestValue = ComputeSignatureSHA1(timestampString);
-
-        // Build SignedInfo string (with default namespace, not dsig: prefix)
-        var signedInfoString = BuildSignedInfoString(digestValue);
-
-        // Calculate signature using HMAC-SHA1
-        var signatureValue = ComputeSignatureHMACSHA1(_options.SigningKey, signedInfoString);
-
-        // Setup namespaces for XPath
+        // Setup namespaces for XPath - must be done on the document's NameTable
         var localNsManager = new XmlNamespaceManager(xmlDoc.NameTable);
         localNsManager.AddNamespace("s", "http://www.w3.org/2003/05/soap-envelope");
-        localNsManager.AddNamespace("o", WsseNamespace);
+        localNsManager.AddNamespace("wsse", WsseNamespace);
+        localNsManager.AddNamespace("wsu", WsuNamespace);
 
-        // Get Security node
-        var securityNode = xmlDoc.SelectSingleNode("//o:Security", localNsManager)
+        // Get Security node - try multiple XPath expressions
+        var securityNode = xmlDoc.SelectSingleNode("//wsse:Security", localNsManager)
             ?? xmlDoc.SelectSingleNode("//*[local-name()='Security']", localNsManager);
 
         if (securityNode == null)
@@ -69,112 +57,152 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
             throw new InvalidOperationException("Security header not found in SOAP envelope");
         }
 
-        // Get the existing token (EncryptedData) from inside Security
-        var existingTokenXml = "";
+        // Save existing children (TokenXML) to re-add in correct order
+        var existingChildren = new List<XmlNode>();
         foreach (XmlNode child in securityNode.ChildNodes)
         {
-            if (child.NodeType == XmlNodeType.Element)
+            if (child.NodeType == XmlNodeType.Element) // Skip whitespace nodes
             {
-                existingTokenXml = child.OuterXml;
-                break;
+                existingChildren.Add(child);
             }
         }
 
-        // Clear Security node children
+        // Clear Security node children only (preserve attributes like s:mustUnderstand="1")
         while (securityNode.HasChildNodes)
         {
             securityNode.RemoveChild(securityNode.FirstChild!);
         }
 
-        // Build the complete Security content: Timestamp -> EncryptedData -> Signature
-        var securityContent = new StringBuilder();
-        securityContent.Append(timestampString);
-        securityContent.Append(existingTokenXml);
-        securityContent.Append(BuildSignatureString(signedInfoString, signatureValue, _options.AssertionId));
+        // Create nodes using XmlDocument (original working approach)
+        var timestampNode = CreateTimestampNode(xmlDoc, now, expires);
+        var signedInfo = CreateSignedInfoNode(xmlDoc, timestampNode);
+        var signatureElement = CreateSignatureElement(xmlDoc, signedInfo);
 
-        // Parse and append the content
-        var tempDoc = new XmlDocument();
-        tempDoc.LoadXml($"<root xmlns:o=\"{WsseNamespace}\" xmlns:u=\"{WsuNamespace}\">{securityContent}</root>");
-        
-        foreach (XmlNode child in tempDoc.DocumentElement!.ChildNodes)
+        // Add in correct order: Timestamp -> TokenXML -> Signature (matching Go implementation)
+        securityNode.AppendChild(timestampNode);
+        foreach (var child in existingChildren)
         {
-            var importedNode = xmlDoc.ImportNode(child, true);
-            securityNode.AppendChild(importedNode);
+            securityNode.AppendChild(child);
         }
+        securityNode.AppendChild(signatureElement);
 
         return xmlDoc.OuterXml;
     }
 
-    /// <summary>
-    /// Builds timestamp string exactly like the working version
-    /// </summary>
-    private static string BuildTimestampString(DateTime now, DateTime expires)
+    private XmlElement CreateTimestampNode(XmlDocument xmlDoc, DateTime now, DateTime expires)
     {
-        var sb = new StringBuilder();
-        sb.Append($"<u:Timestamp xmlns:u=\"{WsuNamespace}\" u:Id=\"_0\">");
-        sb.Append($"<u:Created>{now.ToString("o")}</u:Created>");
-        sb.Append($"<u:Expires>{expires.ToString("o")}</u:Expires>");
-        sb.Append("</u:Timestamp>");
-        return sb.ToString();
+        var timestampNode = xmlDoc.CreateElement("wsu", "Timestamp", WsuNamespace);
+        timestampNode.SetAttribute("Id", WsuNamespace, "_0");
+
+        var createdNode = xmlDoc.CreateElement("wsu", "Created", WsuNamespace);
+        createdNode.InnerText = FormatTimestamp(now);
+        timestampNode.AppendChild(createdNode);
+
+        var expiresNode = xmlDoc.CreateElement("wsu", "Expires", WsuNamespace);
+        expiresNode.InnerText = FormatTimestamp(expires);
+        timestampNode.AppendChild(expiresNode);
+
+        return timestampNode;
+    }
+
+    private XmlElement CreateSignedInfoNode(XmlDocument xmlDoc, XmlElement timestampNode)
+    {
+        var signedInfo = xmlDoc.CreateElement("dsig", "SignedInfo", DsigNamespace);
+
+        var c14nMethod = xmlDoc.CreateElement("dsig", "CanonicalizationMethod", DsigNamespace);
+        c14nMethod.SetAttribute("Algorithm", ExcC14NAlgorithm);
+        signedInfo.AppendChild(c14nMethod);
+
+        var signatureMethod = xmlDoc.CreateElement("dsig", "SignatureMethod", DsigNamespace);
+        signatureMethod.SetAttribute("Algorithm", HmacSha1Algorithm);
+        signedInfo.AppendChild(signatureMethod);
+
+        var reference = CreateReferenceNode(xmlDoc, timestampNode);
+        signedInfo.AppendChild(reference);
+
+        return signedInfo;
+    }
+
+    private XmlElement CreateReferenceNode(XmlDocument xmlDoc, XmlElement timestampNode)
+    {
+        var reference = xmlDoc.CreateElement("dsig", "Reference", DsigNamespace);
+        reference.SetAttribute("URI", "#_0");
+
+        var transforms = xmlDoc.CreateElement("dsig", "Transforms", DsigNamespace);
+        var transform = xmlDoc.CreateElement("dsig", "Transform", DsigNamespace);
+        transform.SetAttribute("Algorithm", ExcC14NAlgorithm);
+        transforms.AppendChild(transform);
+        reference.AppendChild(transforms);
+
+        var digestMethod = xmlDoc.CreateElement("dsig", "DigestMethod", DsigNamespace);
+        digestMethod.SetAttribute("Algorithm", Sha1Algorithm);
+        reference.AppendChild(digestMethod);
+
+        // Calculate digest - Create a temporary document with the timestamp node
+        var tempDoc = new XmlDocument();
+        tempDoc.LoadXml(timestampNode.OuterXml);
+
+        var c14nTransform = new XmlDsigExcC14NTransform();
+        c14nTransform.LoadInput(tempDoc);
+
+        using var c14nStream = (MemoryStream)c14nTransform.GetOutput(typeof(Stream));
+        var c14nTimestamp = c14nStream.ToArray();
+        var timestampDigest = SHA1.HashData(c14nTimestamp);
+
+        var digestValue = xmlDoc.CreateElement("dsig", "DigestValue", DsigNamespace);
+        digestValue.InnerText = Convert.ToBase64String(timestampDigest);
+        reference.AppendChild(digestValue);
+
+        return reference;
+    }
+
+    private XmlElement CreateSignatureElement(XmlDocument xmlDoc, XmlElement signedInfo)
+    {
+        var signatureElement = xmlDoc.CreateElement("dsig", "Signature", DsigNamespace);
+        signatureElement.AppendChild(signedInfo);
+
+        // Calculate signature - Create a temporary document with the signed info node
+        var tempDoc = new XmlDocument();
+        tempDoc.LoadXml(signedInfo.OuterXml);
+
+        var c14nTransformSI = new XmlDsigExcC14NTransform();
+        c14nTransformSI.LoadInput(tempDoc);
+
+        using var c14nStream = (MemoryStream)c14nTransformSI.GetOutput(typeof(Stream));
+        var c14nSignedInfo = c14nStream.ToArray();
+
+        using var hmac = new HMACSHA1(Convert.FromBase64String(_options.SigningKey.Trim()));
+        var signatureValue = hmac.ComputeHash(c14nSignedInfo);
+
+        var signatureValueElement = xmlDoc.CreateElement("dsig", "SignatureValue", DsigNamespace);
+        signatureValueElement.InnerText = Convert.ToBase64String(signatureValue);
+        signatureElement.AppendChild(signatureValueElement);
+
+        var keyInfo = CreateKeyInfoElement(xmlDoc);
+        signatureElement.AppendChild(keyInfo);
+
+        return signatureElement;
+    }
+
+    private XmlElement CreateKeyInfoElement(XmlDocument xmlDoc)
+    {
+        var keyInfo = xmlDoc.CreateElement("dsig", "KeyInfo", DsigNamespace);
+        var securityTokenReference = xmlDoc.CreateElement("wsse", "SecurityTokenReference", WsseNamespace);
+        var keyIdentifier = xmlDoc.CreateElement("wsse", "KeyIdentifier", WsseNamespace);
+        keyIdentifier.SetAttribute("ValueType", SamlAssertionIdValueType);
+        keyIdentifier.InnerText = _options.AssertionId;
+        securityTokenReference.AppendChild(keyIdentifier);
+        keyInfo.AppendChild(securityTokenReference);
+
+        return keyInfo;
     }
 
     /// <summary>
-    /// Builds SignedInfo string with default namespace (not prefixed)
+    /// Format timestamp exactly like Go's tsISO function: 2006-01-02T15:04:05Z
     /// </summary>
-    private static string BuildSignedInfoString(string digestValue)
+    private static string FormatTimestamp(DateTime dt)
     {
-        var sb = new StringBuilder();
-        sb.Append($"<SignedInfo xmlns=\"{DsigNamespace}\">");
-        sb.Append($"<CanonicalizationMethod Algorithm=\"{ExcC14NAlgorithm}\"></CanonicalizationMethod>");
-        sb.Append($"<SignatureMethod Algorithm=\"{HmacSha1Algorithm}\"></SignatureMethod>");
-        sb.Append("<Reference URI=\"#_0\">");
-        sb.Append("<Transforms>");
-        sb.Append($"<Transform Algorithm=\"{ExcC14NAlgorithm}\"></Transform>");
-        sb.Append("</Transforms>");
-        sb.Append($"<DigestMethod Algorithm=\"{Sha1Algorithm}\"></DigestMethod>");
-        sb.Append($"<DigestValue>{digestValue}</DigestValue>");
-        sb.Append("</Reference>");
-        sb.Append("</SignedInfo>");
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// Builds complete Signature element string
-    /// </summary>
-    private static string BuildSignatureString(string signedInfoString, string signatureValue, string assertionId)
-    {
-        var sb = new StringBuilder();
-        sb.Append($"<Signature xmlns=\"{DsigNamespace}\">");
-        sb.Append(signedInfoString);
-        sb.Append($"<SignatureValue>{signatureValue}</SignatureValue>");
-        sb.Append("<KeyInfo>");
-        sb.Append($"<o:SecurityTokenReference k:TokenType=\"{SamlTokenType}\" xmlns:k=\"{Wsse11Namespace}\">");
-        sb.Append($"<o:KeyIdentifier ValueType=\"{SamlAssertionIdValueType}\">{assertionId}</o:KeyIdentifier>");
-        sb.Append("</o:SecurityTokenReference>");
-        sb.Append("</KeyInfo>");
-        sb.Append("</Signature>");
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// Computes SHA1 hash of input string (matching working version)
-    /// </summary>
-    private static string ComputeSignatureSHA1(string input)
-    {
-        var inputBytes = Encoding.UTF8.GetBytes(input);
-        var hashBytes = SHA1.HashData(inputBytes);
-        return Convert.ToBase64String(hashBytes);
-    }
-
-    /// <summary>
-    /// Computes HMAC-SHA1 signature (matching working version)
-    /// </summary>
-    private static string ComputeSignatureHMACSHA1(string key, string data)
-    {
-        var secret = Convert.FromBase64String(key);
-        var body = Encoding.UTF8.GetBytes(data);
-        using var hmacsha1 = new HMACSHA1(secret);
-        var hashmessage = hmacsha1.ComputeHash(body);
-        return Convert.ToBase64String(hashmessage);
+        // Use 'Z' with quotes for literal Z character (not timezone offset)
+        return dt.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
     }
 }

@@ -1,6 +1,4 @@
-using System.Text;
 using System.Xml;
-using KPS.Core.Models;
 using KPS.Core.Models.Request;
 using KPS.Core.Services.Factory.Xml.Abstract;
 
@@ -16,57 +14,51 @@ internal class CreateSoapEnvelopeOperation : IXmlOperation
   private const string WsaNamespace = "http://www.w3.org/2005/08/addressing";
   private const string WsseNamespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
   private const string WsuNamespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd";
-  private const string SorgulayanNamespace = "http://kps.nvi.gov.tr/2011/01/01/sorgulayan";
+  private const string XsiNamespace = "http://www.w3.org/2001/XMLSchema-instance";
 
-  // KPS service constants - using 2023/07/01 like the working version
-  private const string KpsBodyNamespace = "http://kps.nvi.gov.tr/2023/07/01";
-  private const string KpsActionUri = "http://kps.nvi.gov.tr/2023/07/01/KimlikNoSorgulaAdresServis/Sorgula";
+  // KPS service constants
+  private const string KpsBodyNamespace = "http://kps.nvi.gov.tr/2025/08/01";
+  private const string KpsActionUri = "http://kps.nvi.gov.tr/2025/08/01/TumKutukDogrulaServis/Sorgula";
+  private const string KpsEndpoint = "https://kpsv2.nvi.gov.tr/Services/RoutingService.svc";
 
   private readonly CitizenVerificationRequest _request;
   private readonly string _samlToken;
-  private readonly KpsOptions _options;
 
-  public CreateSoapEnvelopeOperation(CitizenVerificationRequest request, string samlToken, KpsOptions options)
+  public CreateSoapEnvelopeOperation(CitizenVerificationRequest request, string samlToken)
   {
     _request = request;
     _samlToken = samlToken;
-    _options = options;
   }
 
   public string Execute(XmlDocument xmlDoc, XmlNamespaceManager nsManager)
   {
     var messageId = $"urn:uuid:{Guid.NewGuid()}";
 
-    var sb = new StringBuilder();
-    sb.Append($"<s:Envelope xmlns:s=\"{SoapNamespace}\" xmlns:a=\"{WsaNamespace}\" xmlns:u=\"{WsuNamespace}\" xmlns:ns=\"{KpsBodyNamespace}\">");
-    sb.Append("<s:Header>");
-    sb.Append($"<a:Action s:mustUnderstand=\"1\">{KpsActionUri}</a:Action>");
-    sb.Append($"<Sorgulayan xmlns=\"{SorgulayanNamespace}\">{XmlEscape(_options.Username)}</Sorgulayan>");
-    sb.Append($"<a:MessageID>{messageId}</a:MessageID>");
-    sb.Append("<a:ReplyTo>");
-    sb.Append("<a:Address>http://www.w3.org/2005/08/addressing/anonymous</a:Address>");
-    sb.Append("</a:ReplyTo>");
-    sb.Append($"<a:To s:mustUnderstand=\"1\">{_options.KpsEndpoint}</a:To>");
-    sb.Append($"<o:Security s:mustUnderstand=\"1\" xmlns:o=\"{WsseNamespace}\">");
-    // Token will be inserted here by SignSoapEnvelopeOperation
-    sb.Append($"{_samlToken}");
-    sb.Append("</o:Security>");
-    sb.Append("</s:Header>");
-    sb.Append("<s:Body>");
-    sb.Append("<ns:Sorgula>");
-    sb.Append("<ns:kriterListesi>");
-    sb.Append("<ns:KimlikNoileAdresSorguKriteri>");
-    sb.Append($"<ns:DogumAy>{XmlEscape(ZeroIfEmpty(_request.BirthMonth))}</ns:DogumAy>");
-    sb.Append($"<ns:DogumGun>{XmlEscape(ZeroIfEmpty(_request.BirthDay))}</ns:DogumGun>");
-    sb.Append($"<ns:DogumYil>{XmlEscape(_request.BirthYear)}</ns:DogumYil>");
-    sb.Append($"<ns:KimlikNo>{XmlEscape(_request.TCNo)}</ns:KimlikNo>");
-    sb.Append("</ns:KimlikNoileAdresSorguKriteri>");
-    sb.Append("</ns:kriterListesi>");
-    sb.Append("</ns:Sorgula>");
-    sb.Append("</s:Body>");
-    sb.Append("</s:Envelope>");
-
-    return sb.ToString();
+    return $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<s:Envelope xmlns:s=""{SoapNamespace}"">
+  <s:Header>
+    <a:MessageID xmlns:a=""{WsaNamespace}"">{messageId}</a:MessageID>
+    <a:To xmlns:a=""{WsaNamespace}"" s:mustUnderstand=""1"">{KpsEndpoint}</a:To>
+    <a:Action xmlns:a=""{WsaNamespace}"" s:mustUnderstand=""1"">{KpsActionUri}</a:Action>
+    <wsse:Security xmlns:wsse=""{WsseNamespace}"" xmlns:wsu=""{WsuNamespace}"" s:mustUnderstand=""1"">
+      {_samlToken}
+    </wsse:Security>
+  </s:Header>
+  <s:Body>
+    <Sorgula xmlns=""{KpsBodyNamespace}"" xmlns:i=""{XsiNamespace}"">
+      <kriterListesi>
+        <TumKutukDogrulamaSorguKriteri>
+          <Ad>{XmlEscape(_request.FirstName)}</Ad>
+          <DogumAy>{XmlEscape(ZeroIfEmpty(_request.BirthMonth))}</DogumAy>
+          <DogumGun>{XmlEscape(ZeroIfEmpty(_request.BirthDay))}</DogumGun>
+          <DogumYil>{XmlEscape(_request.BirthYear)}</DogumYil>
+          <KimlikNo>{XmlEscape(_request.TCNo)}</KimlikNo>
+          <Soyad>{XmlEscape(_request.LastName)}</Soyad>
+        </TumKutukDogrulamaSorguKriteri>
+      </kriterListesi>
+    </Sorgula>
+  </s:Body>
+</s:Envelope>";
   }
 
   private static string XmlEscape(string text)

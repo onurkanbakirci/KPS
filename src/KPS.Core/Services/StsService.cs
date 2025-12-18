@@ -49,9 +49,9 @@ public class StsService(HttpClient httpClient, KpsOptions options) : IStsService
   /// <summary>
   /// Creates a WS-Trust request envelope using factory pattern
   /// </summary>
-  private string CreateWsTrustRequest(string username, string password)
+  private static string CreateWsTrustRequest(string username, string password)
   {
-    var operation = XmlOperationFactory.CreateWsTrustRequestOperation(username, password, _options.StsEndpoint, _options.KpsEndpoint);
+    var operation = XmlOperationFactory.CreateWsTrustRequestOperation(username, password);
     return operation.Execute(new XmlDocument(), new XmlNamespaceManager(new NameTable()));
   }
 
