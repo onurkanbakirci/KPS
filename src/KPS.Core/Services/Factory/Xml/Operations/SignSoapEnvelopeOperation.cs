@@ -158,10 +158,8 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
 
     private XmlElement CreateSignatureElement(XmlDocument xmlDoc, XmlElement signedInfo)
     {
-        var signatureElement = xmlDoc.CreateElement("dsig", "Signature", DsigNamespace);
-        signatureElement.AppendChild(signedInfo);
-
-        // Calculate signature - Create a temporary document with the signed info node
+        // CRITICAL: Calculate signature BEFORE appending SignedInfo to any parent element
+        // The canonicalization must happen on a standalone SignedInfo element to match Go behavior
         var tempDoc = new XmlDocument();
         tempDoc.LoadXml(signedInfo.OuterXml);
 
@@ -173,6 +171,10 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
 
         using var hmac = new HMACSHA1(Convert.FromBase64String(_options.SigningKey.Trim()));
         var signatureValue = hmac.ComputeHash(c14nSignedInfo);
+
+        // NOW build the Signature element structure after signature calculation
+        var signatureElement = xmlDoc.CreateElement("dsig", "Signature", DsigNamespace);
+        signatureElement.AppendChild(signedInfo);
 
         var signatureValueElement = xmlDoc.CreateElement("dsig", "SignatureValue", DsigNamespace);
         signatureValueElement.InnerText = Convert.ToBase64String(signatureValue);
