@@ -15,6 +15,10 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
     private const string WsuNamespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd";
     private const string WsseNamespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
     private const string DsigNamespace = "http://www.w3.org/2000/09/xmldsig#";
+    private const string ExcC14NAlgorithm = "http://www.w3.org/2001/10/xml-exc-c14n#";
+    private const string HmacSha1Algorithm = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
+    private const string Sha1Algorithm = "http://www.w3.org/2000/09/xmldsig#sha1";
+    private const string SamlAssertionIdValueType = "http://docs.oasis-open.org/wss/oasis-wss-saml-token-profile-1.0#SAMLAssertionID";
 
     private readonly KpsOptions _options;
 
@@ -37,8 +41,6 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
 
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(5);
-        var created = FormatTimestamp(now);
-        var expiresStr = FormatTimestamp(expires);
 
         // Setup namespaces for XPath - must be done on the document's NameTable
         var localNsManager = new XmlNamespaceManager(xmlDoc.NameTable);
@@ -71,61 +73,128 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
             securityNode.RemoveChild(securityNode.FirstChild!);
         }
 
-        // Build timestamp XML string exactly like Go implementation
-        var timestampXml = $@"<wsu:Timestamp xmlns:wsu=""{WsuNamespace}"" wsu:Id=""_0""><wsu:Created>{created}</wsu:Created><wsu:Expires>{expiresStr}</wsu:Expires></wsu:Timestamp>";
+        // Create nodes using XmlDocument (original working approach)
+        var timestampNode = CreateTimestampNode(xmlDoc, now, expires);
+        var signedInfo = CreateSignedInfoNode(xmlDoc, timestampNode);
+        var signatureElement = CreateSignatureElement(xmlDoc, signedInfo);
 
-        // Canonicalize timestamp and compute digest (matching Go implementation)
-        var c14nTimestamp = CanonicalizationExclusive(timestampXml);
-        var timestampDigest = SHA1.HashData(c14nTimestamp);
-        var digestValue = Convert.ToBase64String(timestampDigest);
-
-        // Build SignedInfo XML string exactly like Go implementation
-        var signedInfoXml = $@"<dsig:SignedInfo xmlns:dsig=""{DsigNamespace}"">
-            <dsig:CanonicalizationMethod Algorithm=""http://www.w3.org/2001/10/xml-exc-c14n#""/>
-            <dsig:SignatureMethod Algorithm=""http://www.w3.org/2000/09/xmldsig#hmac-sha1""/>
-            <dsig:Reference URI=""#_0"">
-                <dsig:Transforms>
-                    <dsig:Transform Algorithm=""http://www.w3.org/2001/10/xml-exc-c14n#""/>
-                </dsig:Transforms>
-                <dsig:DigestMethod Algorithm=""http://www.w3.org/2000/09/xmldsig#sha1""/>
-                <dsig:DigestValue>{digestValue}</dsig:DigestValue>
-            </dsig:Reference>
-        </dsig:SignedInfo>";
-
-        // Canonicalize SignedInfo and compute HMAC-SHA1 signature
-        var c14nSignedInfo = CanonicalizationExclusive(signedInfoXml);
-        var key = Convert.FromBase64String(_options.SigningKey.Trim());
-        using var hmac = new HMACSHA1(key);
-        var signatureValue = Convert.ToBase64String(hmac.ComputeHash(c14nSignedInfo));
-
-        // Build complete Signature block exactly like Go implementation
-        var signatureXml = $@"<dsig:Signature xmlns:dsig=""{DsigNamespace}"">
-            {signedInfoXml}
-            <dsig:SignatureValue>{signatureValue}</dsig:SignatureValue>
-            <dsig:KeyInfo>
-                <wsse:SecurityTokenReference xmlns:wsse=""{WsseNamespace}"">
-                    <wsse:KeyIdentifier ValueType=""http://docs.oasis-open.org/wss/oasis-wss-saml-token-profile-1.0#SAMLAssertionID"">{XmlEscape(_options.AssertionId)}</wsse:KeyIdentifier>
-                </wsse:SecurityTokenReference>
-            </dsig:KeyInfo>
-        </dsig:Signature>";
-
-        // Parse and import nodes into the document
-        var timestampFragment = xmlDoc.CreateDocumentFragment();
-        timestampFragment.InnerXml = timestampXml;
-        securityNode.AppendChild(timestampFragment);
-
-        // Re-add TokenXML (existing children)
+        // Add in correct order: Timestamp -> TokenXML -> Signature (matching Go implementation)
+        securityNode.AppendChild(timestampNode);
         foreach (var child in existingChildren)
         {
             securityNode.AppendChild(child);
         }
-
-        // Add Signature
-        var signatureFragment = xmlDoc.CreateDocumentFragment();
-        signatureFragment.InnerXml = signatureXml;
-        securityNode.AppendChild(signatureFragment);
+        securityNode.AppendChild(signatureElement);
 
         return xmlDoc.OuterXml;
+    }
+
+    private XmlElement CreateTimestampNode(XmlDocument xmlDoc, DateTime now, DateTime expires)
+    {
+        var timestampNode = xmlDoc.CreateElement("wsu", "Timestamp", WsuNamespace);
+        timestampNode.SetAttribute("Id", WsuNamespace, "_0");
+
+        var createdNode = xmlDoc.CreateElement("wsu", "Created", WsuNamespace);
+        createdNode.InnerText = FormatTimestamp(now);
+        timestampNode.AppendChild(createdNode);
+
+        var expiresNode = xmlDoc.CreateElement("wsu", "Expires", WsuNamespace);
+        expiresNode.InnerText = FormatTimestamp(expires);
+        timestampNode.AppendChild(expiresNode);
+
+        return timestampNode;
+    }
+
+    private XmlElement CreateSignedInfoNode(XmlDocument xmlDoc, XmlElement timestampNode)
+    {
+        var signedInfo = xmlDoc.CreateElement("dsig", "SignedInfo", DsigNamespace);
+
+        var c14nMethod = xmlDoc.CreateElement("dsig", "CanonicalizationMethod", DsigNamespace);
+        c14nMethod.SetAttribute("Algorithm", ExcC14NAlgorithm);
+        signedInfo.AppendChild(c14nMethod);
+
+        var signatureMethod = xmlDoc.CreateElement("dsig", "SignatureMethod", DsigNamespace);
+        signatureMethod.SetAttribute("Algorithm", HmacSha1Algorithm);
+        signedInfo.AppendChild(signatureMethod);
+
+        var reference = CreateReferenceNode(xmlDoc, timestampNode);
+        signedInfo.AppendChild(reference);
+
+        return signedInfo;
+    }
+
+    private XmlElement CreateReferenceNode(XmlDocument xmlDoc, XmlElement timestampNode)
+    {
+        var reference = xmlDoc.CreateElement("dsig", "Reference", DsigNamespace);
+        reference.SetAttribute("URI", "#_0");
+
+        var transforms = xmlDoc.CreateElement("dsig", "Transforms", DsigNamespace);
+        var transform = xmlDoc.CreateElement("dsig", "Transform", DsigNamespace);
+        transform.SetAttribute("Algorithm", ExcC14NAlgorithm);
+        transforms.AppendChild(transform);
+        reference.AppendChild(transforms);
+
+        var digestMethod = xmlDoc.CreateElement("dsig", "DigestMethod", DsigNamespace);
+        digestMethod.SetAttribute("Algorithm", Sha1Algorithm);
+        reference.AppendChild(digestMethod);
+
+        // Calculate digest - Create a temporary document with the timestamp node
+        var tempDoc = new XmlDocument();
+        tempDoc.LoadXml(timestampNode.OuterXml);
+
+        var c14nTransform = new XmlDsigExcC14NTransform();
+        c14nTransform.LoadInput(tempDoc);
+
+        using var c14nStream = (MemoryStream)c14nTransform.GetOutput(typeof(Stream));
+        var c14nTimestamp = c14nStream.ToArray();
+        var timestampDigest = SHA1.HashData(c14nTimestamp);
+
+        var digestValue = xmlDoc.CreateElement("dsig", "DigestValue", DsigNamespace);
+        digestValue.InnerText = Convert.ToBase64String(timestampDigest);
+        reference.AppendChild(digestValue);
+
+        return reference;
+    }
+
+    private XmlElement CreateSignatureElement(XmlDocument xmlDoc, XmlElement signedInfo)
+    {
+        var signatureElement = xmlDoc.CreateElement("dsig", "Signature", DsigNamespace);
+        signatureElement.AppendChild(signedInfo);
+
+        // Calculate signature - Create a temporary document with the signed info node
+        var tempDoc = new XmlDocument();
+        tempDoc.LoadXml(signedInfo.OuterXml);
+
+        var c14nTransformSI = new XmlDsigExcC14NTransform();
+        c14nTransformSI.LoadInput(tempDoc);
+
+        using var c14nStream = (MemoryStream)c14nTransformSI.GetOutput(typeof(Stream));
+        var c14nSignedInfo = c14nStream.ToArray();
+
+        using var hmac = new HMACSHA1(Convert.FromBase64String(_options.SigningKey.Trim()));
+        var signatureValue = hmac.ComputeHash(c14nSignedInfo);
+
+        var signatureValueElement = xmlDoc.CreateElement("dsig", "SignatureValue", DsigNamespace);
+        signatureValueElement.InnerText = Convert.ToBase64String(signatureValue);
+        signatureElement.AppendChild(signatureValueElement);
+
+        var keyInfo = CreateKeyInfoElement(xmlDoc);
+        signatureElement.AppendChild(keyInfo);
+
+        return signatureElement;
+    }
+
+    private XmlElement CreateKeyInfoElement(XmlDocument xmlDoc)
+    {
+        var keyInfo = xmlDoc.CreateElement("dsig", "KeyInfo", DsigNamespace);
+        var securityTokenReference = xmlDoc.CreateElement("wsse", "SecurityTokenReference", WsseNamespace);
+        var keyIdentifier = xmlDoc.CreateElement("wsse", "KeyIdentifier", WsseNamespace);
+        keyIdentifier.SetAttribute("ValueType", SamlAssertionIdValueType);
+        keyIdentifier.InnerText = _options.AssertionId;
+        securityTokenReference.AppendChild(keyIdentifier);
+        keyInfo.AppendChild(securityTokenReference);
+
+        return keyInfo;
     }
 
     /// <summary>
@@ -135,33 +204,5 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
     {
         // Use 'Z' with quotes for literal Z character (not timezone offset)
         return dt.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
-    }
-
-    /// <summary>
-    /// XML escape text (matching Go's xmlEscape function)
-    /// </summary>
-    private static string XmlEscape(string text)
-    {
-        return text
-            .Replace("&", "&amp;")
-            .Replace("<", "&lt;")
-            .Replace(">", "&gt;")
-            .Replace("\"", "&quot;")
-            .Replace("'", "&apos;");
-    }
-
-    /// <summary>
-    /// Perform Exclusive XML Canonicalization (C14N) matching Go's c14nExclusive
-    /// </summary>
-    private static byte[] CanonicalizationExclusive(string xmlFragment)
-    {
-        var doc = new XmlDocument { PreserveWhitespace = false };
-        doc.LoadXml(xmlFragment.Trim());
-
-        var transform = new XmlDsigExcC14NTransform();
-        transform.LoadInput(doc);
-
-        using var stream = (MemoryStream)transform.GetOutput(typeof(Stream));
-        return stream.ToArray();
     }
 }

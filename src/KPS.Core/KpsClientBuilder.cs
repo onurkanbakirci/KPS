@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using KPS.Core.Models;
 using KPS.Core.Services;
-using KPS.Core.Services.Abstract;
 using KPS.Core.Clients;
 using KPS.Core.Clients.Abstract;
 
