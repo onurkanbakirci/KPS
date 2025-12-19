@@ -31,12 +31,13 @@ try
     // Handle the response
     if (response.Status)
     {
+        Console.WriteLine($"✅ Person validation successful! {response.Person?.FullName}");
         Console.WriteLine("✅ Person validation successful!");
     }
     else
     {
         Console.WriteLine("❌ Person validation failed");
-    }
+    }    
 }
 catch (Exception ex)
 {

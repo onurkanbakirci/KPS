@@ -21,12 +21,12 @@ public class QueryResult
     public string Aciklama { get; set; } = string.Empty;
 
     /// <summary>
-    /// Person type: tc_vatandasi, yabanci, mavi
+    /// Person information returned by the service. Null if person not found.
     /// </summary>
-    public string Person { get; set; } = string.Empty;
+    public PersonInfo? Person { get; set; }
 
     /// <summary>
-    /// Additional data returned by the service
+    /// Additional data returned by the service (for backward compatibility and extensibility)
     /// </summary>
     public Dictionary<string, object> Extra { get; set; } = new();
 

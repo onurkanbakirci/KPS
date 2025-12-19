@@ -16,7 +16,7 @@ public class QueryResultTests
         result.Status.Should().BeFalse();
         result.Code.Should().Be(0);
         result.Aciklama.Should().BeEmpty();
-        result.Person.Should().BeEmpty();
+        result.Person.Should().BeNull();
         result.Extra.Should().NotBeNull();
         result.Extra.Should().BeEmpty();
         result.Raw.Should().BeEmpty();
@@ -28,12 +28,19 @@ public class QueryResultTests
         // Arrange
         var result = new QueryResult();
         var extraData = new Dictionary<string, object> { ["key"] = "value" };
+        var personInfo = new PersonInfo
+        {
+            Type = PersonTypes.TurkishCitizen,
+            IdentityNumber = "12345678901",
+            FirstName = "John",
+            LastName = "Doe"
+        };
 
         // Act
         result.Status = true;
         result.Code = ResultCodes.Success;
         result.Aciklama = "Success";
-        result.Person = "tc_vatandasi";
+        result.Person = personInfo;
         result.Extra = extraData;
         result.Raw = "<xml>response</xml>";
 
@@ -41,7 +48,11 @@ public class QueryResultTests
         result.Status.Should().BeTrue();
         result.Code.Should().Be(ResultCodes.Success);
         result.Aciklama.Should().Be("Success");
-        result.Person.Should().Be("tc_vatandasi");
+        result.Person.Should().NotBeNull();
+        result.Person!.Type.Should().Be(PersonTypes.TurkishCitizen);
+        result.Person.IdentityNumber.Should().Be("12345678901");
+        result.Person.FirstName.Should().Be("John");
+        result.Person.LastName.Should().Be("Doe");
         result.Extra.Should().BeEquivalentTo(extraData);
         result.Raw.Should().Be("<xml>response</xml>");
     }
