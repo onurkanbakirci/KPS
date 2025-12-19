@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>KPS.Core</PackageId>
-    <Version>1.0.22</Version>
+    <Version>1.0.23</Version>
     <Authors>onurkanbkrc@gmail.com</Authors>
     <Description>.NET client for Turkey's Population and Citizenship Affairs (KPS) v2 services</Description>
     <PackageTags>kps;turkish;population;citizenship;soap;ws-trust</PackageTags>

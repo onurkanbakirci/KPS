@@ -83,8 +83,9 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
         var timestampDigest = SHA1.HashData(timestampC14N);
         var digestValue = Convert.ToBase64String(timestampDigest);
 
-        // (3) Create SignedInfo as string (matching Go indentation)
-        var signedInfoXml = $@"<dsig:SignedInfo xmlns:dsig=""{DsigNamespace}"">
+        // (3) Create SignedInfo as string (matching Go exactly - line 207-220)
+        // IMPORTANT: Indentation matters! 12 spaces before each line (matching Go)
+        var signedInfo = $@"<dsig:SignedInfo xmlns:dsig=""{DsigNamespace}"">
             <dsig:CanonicalizationMethod Algorithm=""{ExcC14NAlgorithm}""/>
             <dsig:SignatureMethod Algorithm=""{HmacSha1Algorithm}""/>
             <dsig:Reference URI=""#_0"">
@@ -96,29 +97,18 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
             </dsig:Reference>
         </dsig:SignedInfo>";
 
-        // (4) HMAC-SHA1(SignedInfo)
-        var signedInfoC14N = C14NExclusive(signedInfoXml);
+        // (4) HMAC-SHA1(SignatureValue) - matching Go line 223-233
+        var signedInfoC14N = C14NExclusive(signedInfo);
         var key = Convert.FromBase64String(_options.SigningKey.Trim());
         using var hmac = new HMACSHA1(key);
         var signatureValue = hmac.ComputeHash(signedInfoC14N);
         var signatureValueB64 = Convert.ToBase64String(signatureValue);
 
-        // (5) Create Signature block (matching Go format exactly)
-        // Note: SignedInfo is embedded WITHOUT xmlns:dsig since it's declared on Signature
-        var signedInfoInner = $@"
-            <dsig:CanonicalizationMethod Algorithm=""{ExcC14NAlgorithm}""/>
-            <dsig:SignatureMethod Algorithm=""{HmacSha1Algorithm}""/>
-            <dsig:Reference URI=""#_0"">
-                <dsig:Transforms>
-                    <dsig:Transform Algorithm=""{ExcC14NAlgorithm}""/>
-                </dsig:Transforms>
-                <dsig:DigestMethod Algorithm=""{Sha1Algorithm}""/>
-                <dsig:DigestValue>{digestValue}</dsig:DigestValue>
-            </dsig:Reference>
-        ";
-
+        // (5) Create Signature block - matching Go line 236-247
+        // CRITICAL: Embed the EXACT SAME signedInfo string that was used for HMAC calculation
+        // Go does this at line 238 with %s placeholder
         var signatureXml = $@"<dsig:Signature xmlns:dsig=""{DsigNamespace}"">
-            <dsig:SignedInfo>{signedInfoInner}</dsig:SignedInfo>
+            {signedInfo}
             <dsig:SignatureValue>{signatureValueB64}</dsig:SignatureValue>
             <dsig:KeyInfo>
                 <wsse:SecurityTokenReference xmlns:wsse=""{WsseNamespace}"">
@@ -131,7 +121,7 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
         // Use XmlDocument fragment to properly add elements (avoiding string concatenation issues)
         var fragment = xmlDoc.CreateDocumentFragment();
         fragment.InnerXml = timestampXml + tokenXml + signatureXml;
-        
+
         securityNode.AppendChild(fragment);
 
         return xmlDoc.OuterXml;
