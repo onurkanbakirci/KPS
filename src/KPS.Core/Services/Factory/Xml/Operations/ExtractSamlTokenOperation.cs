@@ -6,6 +6,7 @@ namespace KPS.Core.Services.Factory.Xml.Operations;
 
 /// <summary>
 /// Operation for extracting STS artifacts (BinarySecret, KeyIdentifier, Token) from STS response
+/// Matches Go implementation exactly - uses string manipulation to preserve original XML
 /// </summary>
 internal class ExtractSamlTokenOperation : IXmlOperation
 {
@@ -24,6 +25,7 @@ internal class ExtractSamlTokenOperation : IXmlOperation
     {
         try
         {
+            // Use XmlDocument only for BinarySecret and KeyIdentifier (simple text nodes)
             xmlDoc.LoadXml(_response);
 
             // Setup namespace manager for XPath queries
@@ -47,20 +49,24 @@ internal class ExtractSamlTokenOperation : IXmlOperation
             }
             var keyIdentifier = keyIdentifierNode.InnerText.Trim();
 
-            // Extract RequestedSecurityToken inner XML (EncryptedData)
-            var requestedTokenNode = xmlDoc.SelectSingleNode("//wst:RequestedSecurityToken", nsManager);
-            if (requestedTokenNode == null)
+            // CRITICAL: Extract RequestedSecurityToken inner XML using string manipulation
+            // (matching Go's extractInnerXMLOfTagAnyNS function)
+            // This preserves the EXACT original XML without any normalization
+            var tokenXml = ExtractInnerXMLOfTagAnyNS(_response, "RequestedSecurityToken");
+
+            if (string.IsNullOrWhiteSpace(binarySecret) || 
+                string.IsNullOrWhiteSpace(keyIdentifier) || 
+                string.IsNullOrWhiteSpace(tokenXml))
             {
-                throw new InvalidOperationException("RequestedSecurityToken not found in STS response");
+                throw new InvalidOperationException("STS parse error (secret/keyID/token missing)");
             }
-            var tokenXml = requestedTokenNode.InnerXml.Trim();
 
             // Return as JSON for easy deserialization
             var result = new
             {
-                BinarySecret = binarySecret,
-                KeyIdentifier = keyIdentifier,
-                TokenXml = tokenXml
+                BinarySecret = binarySecret.Trim(),
+                KeyIdentifier = keyIdentifier.Trim(),
+                TokenXml = tokenXml.Trim()
             };
 
             return JsonSerializer.Serialize(result);
@@ -69,5 +75,66 @@ internal class ExtractSamlTokenOperation : IXmlOperation
         {
             throw new InvalidOperationException("Failed to parse STS response", ex);
         }
+    }
+
+    /// <summary>
+    /// Extract inner XML of a tag using string manipulation (matching Go's extractInnerXMLOfTagAnyNS)
+    /// This preserves the exact original XML without any parsing/normalization
+    /// </summary>
+    private static string ExtractInnerXMLOfTagAnyNS(string xmlStr, string localName)
+    {
+        var low = xmlStr.ToLower();
+        var needleOpen = "<" + localName.ToLower();
+        var idx = low.IndexOf(needleOpen, StringComparison.Ordinal);
+        
+        if (idx < 0)
+        {
+            // Try with namespace prefix (e.g., "wst:RequestedSecurityToken")
+            needleOpen = ":" + localName.ToLower();
+            idx = low.IndexOf(needleOpen, StringComparison.Ordinal);
+            if (idx < 0)
+            {
+                return "";
+            }
+            // Find the opening '<' before the prefix
+            idx = low.LastIndexOf('<', idx);
+            if (idx < 0)
+            {
+                return "";
+            }
+        }
+
+        // Find the '>' that closes the opening tag
+        var gt = low.IndexOf('>', idx);
+        if (gt < 0)
+        {
+            return "";
+        }
+        var start = gt + 1;
+
+        // Find the closing tag
+        var closeTag = "</" + localName.ToLower() + ">";
+        var end = low.IndexOf(closeTag, start, StringComparison.Ordinal);
+        
+        if (end < 0)
+        {
+            // Try to find closing tag with namespace prefix
+            var cand = low.IndexOf(localName.ToLower() + ">", start, StringComparison.Ordinal);
+            if (cand >= 0)
+            {
+                var pre = low.LastIndexOf("</", cand, StringComparison.Ordinal);
+                if (pre >= 0 && pre >= start)
+                {
+                    end = pre;
+                }
+            }
+            if (end < 0)
+            {
+                return "";
+            }
+        }
+
+        // Return the substring from original string (not lowercased) to preserve exact formatting
+        return xmlStr.Substring(start, end - start);
     }
 }

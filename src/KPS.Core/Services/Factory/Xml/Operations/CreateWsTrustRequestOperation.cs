@@ -40,8 +40,8 @@ internal class CreateWsTrustRequestOperation : IXmlOperation
   public string Execute(XmlDocument xmlDoc, XmlNamespaceManager nsManager)
   {
     var now = DateTime.UtcNow;
-        var created = now.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
-        var expires = now.AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
+    var created = now.ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
+    var expires = now.AddMinutes(5).ToString("yyyy-MM-ddTHH:mm:ss'Z'", CultureInfo.InvariantCulture);
     var messageId = $"urn:uuid:{Guid.NewGuid()}";
 
     return $@"<?xml version=""1.0"" encoding=""utf-8""?>

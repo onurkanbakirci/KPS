@@ -44,6 +44,12 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
         var created = FormatTimestamp(now);
         var expiresStr = FormatTimestamp(expires);
 
+        // Validate TokenXml is available
+        if (string.IsNullOrEmpty(_options.TokenXml))
+        {
+            throw new InvalidOperationException("TokenXml (from STS) is required for signing");
+        }
+
         // Setup namespaces for XPath
         var localNsManager = new XmlNamespaceManager(xmlDoc.NameTable);
         localNsManager.AddNamespace("s", "http://www.w3.org/2003/05/soap-envelope");
@@ -59,16 +65,9 @@ internal class SignSoapEnvelopeOperation : IXmlOperation
             throw new InvalidOperationException("Security header not found in SOAP envelope");
         }
 
-        // Save existing children (TokenXML) 
-        var tokenXml = "";
-        foreach (XmlNode child in securityNode.ChildNodes)
-        {
-            if (child.NodeType == XmlNodeType.Element)
-            {
-                tokenXml = child.OuterXml;
-                break;
-            }
-        }
+        // Use TokenXML from options (already extracted from STS response via string manipulation)
+        // This ensures we use the EXACT original XML without any normalization
+        var tokenXml = _options.TokenXml;
 
         // Clear Security node children
         while (securityNode.HasChildNodes)

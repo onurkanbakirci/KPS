@@ -35,17 +35,13 @@ public class KpsClient(
 
             // Get security token from STS
             _logger.LogDebug("Getting security token from STS");
-            var samlToken = await _stsService.GetSecurityTokenAsync(
-                _options.Username, 
-                _options.Password, 
-                cancellationToken);
+            var samlToken = await _stsService.GetSecurityTokenAsync(_options.Username, _options.Password, cancellationToken);
 
             // Send SOAP request to KPS service
             _logger.LogDebug("Sending SOAP request to KPS service");
             var result = await _soapService.SendSoapRequestAsync(request, samlToken, cancellationToken);
 
-            _logger.LogInformation("KPS query completed for TC: {TCNo}, Status: {Status}", 
-                request.TCNo, result.Status);
+            _logger.LogInformation("KPS query completed for TC: {TCNo}, Status: {Status}", request.TCNo, result.Status);
 
             return result;
         }
