@@ -34,6 +34,7 @@ internal class CreateSoapEnvelopeOperation : IXmlOperation
   {
     var messageId = $"urn:uuid:{Guid.NewGuid()}";
 
+    // Match Go implementation exactly - TokenXML should be on its own line with proper indentation
     return $@"<?xml version=""1.0"" encoding=""utf-8""?>
 <s:Envelope xmlns:s=""{SoapNamespace}"">
   <s:Header>
@@ -41,7 +42,7 @@ internal class CreateSoapEnvelopeOperation : IXmlOperation
     <a:To xmlns:a=""{WsaNamespace}"" s:mustUnderstand=""1"">{KpsEndpoint}</a:To>
     <a:Action xmlns:a=""{WsaNamespace}"" s:mustUnderstand=""1"">{KpsActionUri}</a:Action>
     <wsse:Security xmlns:wsse=""{WsseNamespace}"" xmlns:wsu=""{WsuNamespace}"" s:mustUnderstand=""1"">
-      {_samlToken}
+{_samlToken}
     </wsse:Security>
   </s:Header>
   <s:Body>
