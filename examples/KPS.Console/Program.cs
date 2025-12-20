@@ -3,15 +3,21 @@ using KPS.Core.Models.Request;
 
 try
 {
-    // Create KPS client using builder pattern
+    // Create KPS client using builder pattern (minimal - only required parameters)
     var kpsClient = new KpsClientBuilder()
         .WithUsername("YOUR_USERNAME")
         .WithPassword("YOUR_PASSWORD")
-        .WithTimeout(30)                    // Request timeout in seconds
-        .WithRawResponse(false)             // Don't include raw SOAP response
-        .WithStsEndpoint("https://kimlikdogrulama.nvi.gov.tr/Services/Issuer.svc/IWSTrust13")  // Optional: Custom STS endpoint
-        .WithKpsEndpoint("https://kpsv2.nvi.gov.tr/Services/RoutingService.svc")  // Optional: Custom KPS endpoint
         .Build();
+
+    // Or with custom options (all optional):
+    // var kpsClient = new KpsClientBuilder()
+    //     .WithUsername("YOUR_USERNAME")
+    //     .WithPassword("YOUR_PASSWORD")
+    //     .WithTimeout(30)                    // Optional: Request timeout in seconds (default: 30)
+    //     .WithRawResponse(false)             // Optional: Include raw SOAP response (default: false)
+    //     .WithStsEndpoint("https://kimlikdogrulama.nvi.gov.tr/Services/Issuer.svc/IWSTrust13")  // Optional: Custom STS endpoint
+    //     .WithKpsEndpoint("https://kpsv2.nvi.gov.tr/Services/RoutingService.svc")  // Optional: Custom KPS endpoint
+    //     .Build();
 
     // Create citizen verification request
     var request = new CitizenVerificationRequest
