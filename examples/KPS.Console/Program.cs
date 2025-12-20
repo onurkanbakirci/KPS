@@ -32,7 +32,6 @@ try
     if (response.Status)
     {
         Console.WriteLine($"✅ Person validation successful! {response.Person?.FullName}");
-        Console.WriteLine("✅ Person validation successful!");
     }
     else
     {

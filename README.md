@@ -45,7 +45,6 @@ var result = await client.VerifyCitizenAsync(request);
 if (result.Status)
 {
     Console.WriteLine($"✅ Person validation successful! {result.Person?.FullName}");
-    Console.WriteLine("✅ Person validation successful!");
 }
 else
 {
