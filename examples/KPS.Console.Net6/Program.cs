@@ -1,4 +1,4 @@
-﻿using KPS.Core;
+using KPS.Core;
 using KPS.Core.Models.Request;
 
 try
@@ -49,3 +49,4 @@ catch (Exception ex)
     Console.WriteLine($"❌ An error occurred: {ex.Message}");
     Environment.Exit(1);
 }
+
