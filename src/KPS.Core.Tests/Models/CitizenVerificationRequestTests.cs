@@ -80,4 +80,48 @@ public class CitizenVerificationRequestTests
         request.BirthMonth.Should().Be("01");
         request.BirthDay.Should().Be("15");
     }
+
+    [Fact]
+    public void CitizenVerificationRequest_ConstructorShouldSetAllProperties()
+    {
+        // Act
+        var request = new CitizenVerificationRequest(
+            tcNo: "12345678901",
+            firstName: "John",
+            lastName: "Doe",
+            birthYear: "1990",
+            birthMonth: "01",
+            birthDay: "15"
+        );
+
+        // Assert
+        request.TCNo.Should().Be("12345678901");
+        request.FirstName.Should().Be("John");
+        request.LastName.Should().Be("Doe");
+        request.BirthYear.Should().Be("1990");
+        request.BirthMonth.Should().Be("01");
+        request.BirthDay.Should().Be("15");
+    }
+
+    [Fact]
+    public void CitizenVerificationRequest_ConstructorShouldAcceptAllParameters()
+    {
+        // Act
+        var request = new CitizenVerificationRequest(
+            "98765432109",
+            "Jane",
+            "Smith",
+            "1985",
+            "12",
+            "31"
+        );
+
+        // Assert
+        request.TCNo.Should().Be("98765432109");
+        request.FirstName.Should().Be("Jane");
+        request.LastName.Should().Be("Smith");
+        request.BirthYear.Should().Be("1985");
+        request.BirthMonth.Should().Be("12");
+        request.BirthDay.Should().Be("31");
+    }
 }

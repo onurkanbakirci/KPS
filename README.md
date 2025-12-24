@@ -26,7 +26,7 @@ var client = new KpsClientBuilder()
     .WithPassword("YOUR_PASSWORD")
     .Build();
 
-// Create citizen verification request
+// Create citizen verification request using object initializer
 var request = new CitizenVerificationRequest
 {
     TCNo = "12345678901",
@@ -36,6 +36,16 @@ var request = new CitizenVerificationRequest
     BirthMonth = "01",
     BirthDay = "01"
 };
+
+// Or use constructor for a more concise approach
+// var request = new CitizenVerificationRequest(
+//     tcNo: "12345678901",
+//     firstName: "JOHN",
+//     lastName: "DOE",
+//     birthYear: "1990",
+//     birthMonth: "01",
+//     birthDay: "01"
+// );
 
 // Verify citizen identity
 var result = await client.VerifyCitizenAsync(request);

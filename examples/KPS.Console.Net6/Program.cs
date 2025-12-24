@@ -19,7 +19,7 @@ try
     //     .WithKpsEndpoint("https://kpsv2.nvi.gov.tr/Services/RoutingService.svc")  // Optional: Custom KPS endpoint
     //     .Build();
 
-    // Create citizen verification request
+    // Create citizen verification request using object initializer
     var request = new CitizenVerificationRequest
     {
         TCNo = "12345678901",              // Turkish Citizen Number
@@ -29,6 +29,16 @@ try
         BirthMonth = "01",                // Two digit month
         BirthDay = "01"                   // Two digit day
     };
+
+    // Or use constructor:
+    // var request = new CitizenVerificationRequest(
+    //     tcNo: "12345678901",
+    //     firstName: "JOHN",
+    //     lastName: "DOE",
+    //     birthYear: "1990",
+    //     birthMonth: "01",
+    //     birthDay: "01"
+    // );
 
     // Verify citizen identity
     Console.WriteLine("Verifying citizen identity...");

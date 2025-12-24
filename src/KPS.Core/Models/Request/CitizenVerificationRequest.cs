@@ -46,4 +46,36 @@ public class CitizenVerificationRequest
     [Required]
     [StringLength(2, MinimumLength = 2)]
     public string BirthDay { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CitizenVerificationRequest"/> class
+    /// </summary>
+    public CitizenVerificationRequest()
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CitizenVerificationRequest"/> class with all required parameters
+    /// </summary>
+    /// <param name="tcNo">Turkish Republic Identity Number (11 digits)</param>
+    /// <param name="firstName">First name of the person</param>
+    /// <param name="lastName">Last name of the person</param>
+    /// <param name="birthYear">Birth year (4 digits)</param>
+    /// <param name="birthMonth">Birth month (2 digits, zero-padded)</param>
+    /// <param name="birthDay">Birth day (2 digits, zero-padded)</param>
+    public CitizenVerificationRequest(
+        string tcNo,
+        string firstName,
+        string lastName,
+        string birthYear,
+        string birthMonth,
+        string birthDay)
+    {
+        TCNo = tcNo;
+        FirstName = firstName;
+        LastName = lastName;
+        BirthYear = birthYear;
+        BirthMonth = birthMonth;
+        BirthDay = birthDay;
+    }
 }
